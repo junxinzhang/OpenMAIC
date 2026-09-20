@@ -78,6 +78,7 @@ async function captureInjectedRequestBody(
 describe('OpenAI provider defaults', () => {
   beforeEach(() => {
     vi.stubEnv('OPENAI_COMPAT_USE_STREAMING_CHAT', 'false');
+    vi.stubEnv('OPENAI_COMPAT_USE_RESPONSES', 'false');
     openAiMock.chat.mockClear();
     openAiMock.responses.mockClear();
     openAiMock.createOpenAI.mockReset();
@@ -188,6 +189,20 @@ describe('OpenAI provider defaults', () => {
     // assertions below.
     expect(options?.fetch).toBeTypeOf('function');
     expect(openAiMock.responses).toHaveBeenCalledWith('gpt-5.6-sol');
+    expect(openAiMock.chat).not.toHaveBeenCalled();
+  });
+
+  it('routes every model through Responses for an opted-in custom OpenAI base URL', () => {
+    vi.stubEnv('OPENAI_COMPAT_USE_RESPONSES', 'true');
+
+    getModel({
+      providerId: 'openai',
+      modelId: 'gpt-5.4-mini',
+      apiKey: 'sk-test',
+      baseUrl: 'https://relay.example/v1',
+    });
+
+    expect(openAiMock.responses).toHaveBeenCalledWith('gpt-5.4-mini');
     expect(openAiMock.chat).not.toHaveBeenCalled();
   });
 

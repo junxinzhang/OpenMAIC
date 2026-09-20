@@ -1922,8 +1922,19 @@ function createBedrockCredentialProvider(): BedrockCredentialProvider {
   };
 }
 
-function shouldUseOpenAIResponsesApi(providerId: ProviderId, modelId: string): boolean {
+function shouldUseOpenAIResponsesApi(
+  providerId: ProviderId,
+  modelId: string,
+  baseUrl?: string,
+): boolean {
   if (providerId !== 'openai') return false;
+
+  if (
+    usesCustomOpenAIBaseUrl(baseUrl) &&
+    process.env.OPENAI_COMPAT_USE_RESPONSES === 'true'
+  ) {
+    return true;
+  }
 
   return (
     /^gpt-5\.\d+-pro(?:-|$)/.test(modelId) ||
@@ -2280,7 +2291,8 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       // as named compatible providers: inject the gateway's thinking control
       // and recover reasoning_content before the SDK schema can discard it.
       const usesOpenAIResponses =
-        !useStreamingChatCompat && shouldUseOpenAIResponsesApi(config.providerId, config.modelId);
+        !useStreamingChatCompat &&
+        shouldUseOpenAIResponsesApi(config.providerId, config.modelId, effectiveBaseUrl);
       const usesCompatTransport =
         config.providerId !== 'openai' ||
         (usesCustomOpenAIBaseUrl(config.baseUrl) && !usesOpenAIResponses);

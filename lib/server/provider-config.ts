@@ -5,18 +5,18 @@
  * Keys never leave the server — only provider IDs and metadata are exposed via API.
  */
 
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
-import { createLogger } from '@/lib/logger';
+import fs from "fs";
+import path from "path";
+import yaml from "js-yaml";
+import { createLogger } from "@/lib/logger";
 import {
   DEFAULT_QWEN_TTS_VOICE_CLONE_MODEL,
   isQwenCatalogVoice,
   isQwenVoiceCloneModel,
   TTS_PROVIDERS,
-} from '@/lib/audio/constants';
+} from "@/lib/audio/constants";
 
-const log = createLogger('ServerProviderConfig');
+const log = createLogger("ServerProviderConfig");
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,89 +61,85 @@ interface ServerConfig {
  * checks `<PREFIX>_MODELS` pins against the provider's key env.
  */
 export const LLM_ENV_MAP: Record<string, string> = {
-  OPENAI: 'openai',
-  AZURE_OPENAI: 'azure',
-  ATLASCLOUD: 'atlascloud',
-  ANTHROPIC: 'anthropic',
-  GOOGLE: 'google',
-  DEEPSEEK: 'deepseek',
-  QWEN: 'qwen',
-  KIMI: 'kimi',
-  MINIMAX: 'minimax',
-  GLM: 'glm',
-  SILICONFLOW: 'siliconflow',
-  DOUBAO: 'doubao',
-  OPENROUTER: 'openrouter',
-  GROK: 'grok',
-  TENCENT: 'tencent-hunyuan',
-  TENCENT_HUNYUAN: 'tencent-hunyuan',
-  XIAOMI: 'xiaomi',
-  MIMO: 'xiaomi',
-  TOKENDANCE: 'tokendance',
-  OLLAMA: 'ollama',
-  LEMONADE: 'lemonade',
-  BEDROCK: 'bedrock',
+  OPENAI: "openai",
+  AZURE_OPENAI: "azure",
+  ATLASCLOUD: "atlascloud",
+  ANTHROPIC: "anthropic",
+  GOOGLE: "google",
+  DEEPSEEK: "deepseek",
+  QWEN: "qwen",
+  KIMI: "kimi",
+  MINIMAX: "minimax",
+  GLM: "glm",
+  SILICONFLOW: "siliconflow",
+  DOUBAO: "doubao",
+  OPENROUTER: "openrouter",
+  GROK: "grok",
+  TENCENT: "tencent-hunyuan",
+  TENCENT_HUNYUAN: "tencent-hunyuan",
+  XIAOMI: "xiaomi",
+  MIMO: "xiaomi",
+  OLLAMA: "ollama",
+  LEMONADE: "lemonade",
+  BEDROCK: "bedrock",
 };
 
 const TTS_ENV_MAP: Record<string, string> = {
-  TTS_OPENAI: 'openai-tts',
-  TTS_AZURE: 'azure-tts',
-  TTS_GLM: 'glm-tts',
-  TTS_QWEN: 'qwen-tts',
-  TTS_VOXCPM: 'voxcpm-tts',
-  TTS_DOUBAO: 'doubao-tts',
-  TTS_ELEVENLABS: 'elevenlabs-tts',
-  TTS_MINIMAX: 'minimax-tts',
-  TTS_LEMONADE: 'lemonade-tts',
+  TTS_OPENAI: "openai-tts",
+  TTS_AZURE: "azure-tts",
+  TTS_GLM: "glm-tts",
+  TTS_QWEN: "qwen-tts",
+  TTS_VOXCPM: "voxcpm-tts",
+  TTS_DOUBAO: "doubao-tts",
+  TTS_ELEVENLABS: "elevenlabs-tts",
+  TTS_MINIMAX: "minimax-tts",
+  TTS_LEMONADE: "lemonade-tts",
 };
 
 const ASR_ENV_MAP: Record<string, string> = {
-  ASR_OPENAI: 'openai-whisper',
-  ASR_QWEN: 'qwen-asr',
-  ASR_AZURE: 'azure-asr',
-  ASR_FUNASR: 'funasr-asr',
-  ASR_LEMONADE: 'lemonade-asr',
+  ASR_OPENAI: "openai-whisper",
+  ASR_QWEN: "qwen-asr",
+  ASR_AZURE: "azure-asr",
+  ASR_FUNASR: "funasr-asr",
+  ASR_LEMONADE: "lemonade-asr",
 };
 
 const PDF_ENV_MAP: Record<string, string> = {
-  PDF_UNPDF: 'unpdf',
-  PDF_MINERU: 'mineru',
-  PDF_MINERU_CLOUD: 'mineru-cloud',
+  PDF_UNPDF: "unpdf",
+  PDF_MINERU: "mineru",
+  PDF_MINERU_CLOUD: "mineru-cloud",
 };
 
 const IMAGE_ENV_MAP: Record<string, string> = {
-  IMAGE_OPENAI: 'openai-image',
-  IMAGE_SEEDREAM: 'seedream',
-  IMAGE_QWEN_IMAGE: 'qwen-image',
-  IMAGE_NANO_BANANA: 'nano-banana',
-  IMAGE_MINIMAX: 'minimax-image',
-  IMAGE_GROK: 'grok-image',
-  IMAGE_LEMONADE: 'lemonade',
-  IMAGE_OPENROUTER: 'openrouter-image',
+  IMAGE_OPENAI: "openai-image",
+  IMAGE_SEEDREAM: "seedream",
+  IMAGE_QWEN_IMAGE: "qwen-image",
+  IMAGE_NANO_BANANA: "nano-banana",
+  IMAGE_MINIMAX: "minimax-image",
+  IMAGE_GROK: "grok-image",
+  IMAGE_LEMONADE: "lemonade",
 };
 
 const VIDEO_ENV_MAP: Record<string, string> = {
-  VIDEO_SEEDANCE: 'seedance',
-  VIDEO_KLING: 'kling',
-  VIDEO_VEO: 'veo',
-  VIDEO_MINIMAX: 'minimax-video',
-  VIDEO_GROK: 'grok-video',
-  VIDEO_HAPPYHORSE: 'happyhorse',
-  VIDEO_OPENROUTER: 'openrouter-video',
+  VIDEO_SEEDANCE: "seedance",
+  VIDEO_KLING: "kling",
+  VIDEO_VEO: "veo",
+  VIDEO_MINIMAX: "minimax-video",
+  VIDEO_GROK: "grok-video",
+  VIDEO_HAPPYHORSE: "happyhorse",
 };
 
 const WEB_SEARCH_ENV_MAP: Record<string, string> = {
-  TAVILY: 'tavily',
-  EXA: 'exa',
-  BOCHA: 'bocha',
-  BRAVE: 'brave',
-  BAIDU: 'baidu',
+  TAVILY: "tavily",
+  BOCHA: "bocha",
+  BRAVE: "brave",
+  BAIDU: "baidu",
   // WEB_SEARCH_ prefix avoids colliding with ANTHROPIC_* LLM provider vars.
-  WEB_SEARCH_CLAUDE: 'claude',
-  WEB_SEARCH_MINIMAX: 'minimax',
+  WEB_SEARCH_CLAUDE: "claude",
+  WEB_SEARCH_MINIMAX: "minimax",
   // Dedicated prefix avoids colliding with the Doubao LLM provider vars.
-  WEB_SEARCH_DOUBAO: 'doubao',
-  SEARXNG: 'searxng',
+  WEB_SEARCH_DOUBAO: "doubao",
+  SEARXNG: "searxng",
 };
 
 // ---------------------------------------------------------------------------
@@ -155,7 +151,7 @@ const WEB_SEARCH_ENV_MAP: Record<string, string> = {
  * (`<CAP>_<PREFIX>_ENABLED=false`). LLM and PDF are intentionally not included:
  * their enablement stays purely credential-driven.
  */
-type CapabilitySection = 'tts' | 'asr' | 'image' | 'video' | 'webSearch';
+type CapabilitySection = "tts" | "asr" | "image" | "video" | "webSearch";
 
 /**
  * Env prefixes for each capability's force-disable switch
@@ -168,17 +164,17 @@ type CapabilitySection = 'tts' | 'asr' | 'image' | 'video' | 'webSearch';
 const DISABLE_ENV_MAPS: Record<CapabilitySection, Record<string, string>> = {
   tts: {
     ...TTS_ENV_MAP,
-    TTS_BROWSER_NATIVE: 'browser-native-tts',
+    TTS_BROWSER_NATIVE: "browser-native-tts",
   },
   asr: {
     ...ASR_ENV_MAP,
-    ASR_BROWSER_NATIVE: 'browser-native',
+    ASR_BROWSER_NATIVE: "browser-native",
   },
   image: {
     ...IMAGE_ENV_MAP,
     // comfyui-image lives in the client-side catalog only (no credential env),
     // but operators may still want to force it off fleet-wide.
-    IMAGE_COMFYUI: 'comfyui-image',
+    IMAGE_COMFYUI: "comfyui-image",
   },
   video: { ...VIDEO_ENV_MAP },
   webSearch: { ...WEB_SEARCH_ENV_MAP },
@@ -186,11 +182,11 @@ const DISABLE_ENV_MAPS: Record<CapabilitySection, Record<string, string>> = {
 
 /** YAML section key per capability (web-search is hyphenated in YAML). */
 const YAML_SECTION_KEY: Record<CapabilitySection, keyof YamlData> = {
-  tts: 'tts',
-  asr: 'asr',
-  image: 'image',
-  video: 'video',
-  webSearch: 'web-search',
+  tts: "tts",
+  asr: "asr",
+  image: "image",
+  video: "video",
+  webSearch: "web-search",
 };
 
 // ---------------------------------------------------------------------------
@@ -204,16 +200,16 @@ type YamlData = Partial<{
   pdf: Record<string, Partial<ServerProviderEntry>>;
   image: Record<string, Partial<ServerProviderEntry>>;
   video: Record<string, Partial<ServerProviderEntry>>;
-  'web-search': Record<string, Partial<ServerProviderEntry>>;
+  "web-search": Record<string, Partial<ServerProviderEntry>>;
 }>;
 
 function loadYamlFile(filename: string): YamlData {
   try {
     const filePath = path.join(process.cwd(), filename);
     if (!fs.existsSync(filePath)) return {};
-    const raw = fs.readFileSync(filePath, 'utf-8');
+    const raw = fs.readFileSync(filePath, "utf-8");
     const parsed = yaml.load(raw) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed !== 'object') return {};
+    if (!parsed || typeof parsed !== "object") return {};
     return parsed as YamlData;
   } catch (e) {
     log.warn(`[ServerProviderConfig] Failed to load ${filename}:`, e);
@@ -232,7 +228,9 @@ function loadYamlFile(filename: string): YamlData {
  * truthy pin (its first entry, an empty string). Returns undefined when
  * nothing survives normalization ("no models configured").
  */
-function normalizeModelList(models: string[] | undefined): string[] | undefined {
+function normalizeModelList(
+  models: string[] | undefined,
+): string[] | undefined {
   const parsed = models?.map((model) => model.trim()).filter(Boolean);
   return parsed && parsed.length > 0 ? parsed : undefined;
 }
@@ -263,7 +261,7 @@ function loadEnvSection(
           : entry?.apiKey || (entry?.baseUrl && keylessProviders.has(id))
       ) {
         result[id] = {
-          apiKey: entry.apiKey || '',
+          apiKey: entry.apiKey || "",
           baseUrl: entry.baseUrl,
           models: normalizeModelList(entry.models),
           proxy: entry.proxy,
@@ -279,7 +277,7 @@ function loadEnvSection(
     const envModelsStr = process.env[`${prefix}_MODELS`];
     const envModels = envModelsStr
       ? envModelsStr
-          .split(',')
+          .split(",")
           .map((m) => m.trim())
           .filter(Boolean)
       : undefined;
@@ -300,7 +298,7 @@ function loadEnvSection(
     )
       continue;
     result[providerId] = {
-      apiKey: envApiKey || '',
+      apiKey: envApiKey || "",
       baseUrl: envBaseUrl,
       models: envModels,
     };
@@ -322,7 +320,9 @@ function parseBooleanEnv(raw: string): boolean {
  * silently override an explicit YAML disable. The `_ENABLED` vars can only
  * disable; they never create or force-enable a provider entry.
  */
-function collectDisabledProviders(yamlData: YamlData): Record<CapabilitySection, Set<string>> {
+function collectDisabledProviders(
+  yamlData: YamlData,
+): Record<CapabilitySection, Set<string>> {
   const disabled: Record<CapabilitySection, Set<string>> = {
     tts: new Set<string>(),
     asr: new Set<string>(),
@@ -337,11 +337,13 @@ function collectDisabledProviders(yamlData: YamlData): Record<CapabilitySection,
         if (entry?.enabled === false) disabled[section].add(id);
       }
     }
-    for (const [prefix, providerId] of Object.entries(DISABLE_ENV_MAPS[section])) {
+    for (const [prefix, providerId] of Object.entries(
+      DISABLE_ENV_MAPS[section],
+    )) {
       const raw = process.env[`${prefix}_ENABLED`];
       // Treat unset / empty (e.g. a blank CI-templated value) as "no opinion" so
       // it never silently overrides an explicit YAML disable.
-      if (raw === undefined || raw.trim() === '') continue;
+      if (raw === undefined || raw.trim() === "") continue;
       if (parseBooleanEnv(raw)) disabled[section].delete(providerId);
       else disabled[section].add(providerId);
     }
@@ -353,10 +355,10 @@ function collectDisabledProviders(yamlData: YamlData): Record<CapabilitySection,
 // Module-level cache (process singleton)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_FILENAME = 'server-providers.yml';
-const OPENAI_IMAGE_PROVIDER_ID = 'openai-image';
-const ALIDOCMIND_PROVIDER_ID = 'alidocmind';
-const BEDROCK_PROVIDER_ID = 'bedrock';
+const DEFAULT_FILENAME = "server-providers.yml";
+const OPENAI_IMAGE_PROVIDER_ID = "openai-image";
+const ALIDOCMIND_PROVIDER_ID = "alidocmind";
+const BEDROCK_PROVIDER_ID = "bedrock";
 
 /** Cache keyed by YAML filename (empty string = default file). */
 const _configs: Map<string, ServerConfig> = new Map();
@@ -371,8 +373,10 @@ function applyAliDocMindFallback(
   yamlPdfSection: Record<string, Partial<ServerProviderEntry>> | undefined,
 ): Record<string, ServerProviderEntry> {
   const yamlEntry = yamlPdfSection?.[ALIDOCMIND_PROVIDER_ID];
-  const accessKeyId = process.env.ALIDOCMIND_ACCESS_KEY_ID || yamlEntry?.accessKeyId;
-  const accessKeySecret = process.env.ALIDOCMIND_ACCESS_KEY_SECRET || yamlEntry?.accessKeySecret;
+  const accessKeyId =
+    process.env.ALIDOCMIND_ACCESS_KEY_ID || yamlEntry?.accessKeyId;
+  const accessKeySecret =
+    process.env.ALIDOCMIND_ACCESS_KEY_SECRET || yamlEntry?.accessKeySecret;
   if (!accessKeyId || !accessKeySecret) {
     // AliDocMind can only be server-managed with an AK/SK pair. The generic
     // loader may have created a bare entry from a YAML `baseUrl` alone — drop
@@ -389,11 +393,14 @@ function applyAliDocMindFallback(
   // here would leave a "managed" provider with no usable credentials.
   const existing = pdfConfig[ALIDOCMIND_PROVIDER_ID];
   pdfConfig[ALIDOCMIND_PROVIDER_ID] = {
-    apiKey: existing?.apiKey ?? '',
+    apiKey: existing?.apiKey ?? "",
     accessKeyId,
     accessKeySecret,
     baseUrl:
-      existing?.baseUrl || yamlEntry?.baseUrl || process.env.ALIDOCMIND_BASE_URL || undefined,
+      existing?.baseUrl ||
+      yamlEntry?.baseUrl ||
+      process.env.ALIDOCMIND_BASE_URL ||
+      undefined,
     models: existing?.models,
     proxy: existing?.proxy,
   };
@@ -429,7 +436,7 @@ export function resolveServerMediaExtractorConfig(): {
 } {
   const credentials = resolveManagedAliDocMindCredentials();
   return {
-    providerId: '',
+    providerId: "",
     accessKeyId: credentials?.accessKeyId,
     accessKeySecret: credentials?.accessKeySecret,
     baseUrl: credentials?.baseUrl,
@@ -450,7 +457,9 @@ function applyOpenAIImageFallback(
   imageConfig[OPENAI_IMAGE_PROVIDER_ID] = {
     apiKey,
     baseUrl:
-      yamlOpenAIImage?.baseUrl || process.env.IMAGE_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL,
+      yamlOpenAIImage?.baseUrl ||
+      process.env.IMAGE_OPENAI_BASE_URL ||
+      process.env.OPENAI_BASE_URL,
     models: yamlOpenAIImage?.models,
     proxy: yamlOpenAIImage?.proxy,
   };
@@ -459,7 +468,7 @@ function applyOpenAIImageFallback(
 
 function splitModels(models: string | undefined): string[] | undefined {
   const parsed = models
-    ?.split(',')
+    ?.split(",")
     .map((model) => model.trim())
     .filter(Boolean);
   return parsed && parsed.length > 0 ? parsed : undefined;
@@ -485,14 +494,28 @@ function applyBedrockProviderConfig(
     BEDROCK_PROVIDER_ID,
   );
 
-  if (!providers[BEDROCK_PROVIDER_ID] && !hasExplicitBedrockEnv && !hasYamlBedrock) {
+  if (
+    !providers[BEDROCK_PROVIDER_ID] &&
+    !hasExplicitBedrockEnv &&
+    !hasYamlBedrock
+  ) {
     return providers;
   }
 
   providers[BEDROCK_PROVIDER_ID] = {
-    apiKey: envApiKey || yamlBedrock?.apiKey || providers[BEDROCK_PROVIDER_ID]?.apiKey || '',
-    baseUrl: envBaseUrl || yamlBedrock?.baseUrl || providers[BEDROCK_PROVIDER_ID]?.baseUrl,
-    models: envModels || yamlBedrock?.models || providers[BEDROCK_PROVIDER_ID]?.models,
+    apiKey:
+      envApiKey ||
+      yamlBedrock?.apiKey ||
+      providers[BEDROCK_PROVIDER_ID]?.apiKey ||
+      "",
+    baseUrl:
+      envBaseUrl ||
+      yamlBedrock?.baseUrl ||
+      providers[BEDROCK_PROVIDER_ID]?.baseUrl,
+    models:
+      envModels ||
+      yamlBedrock?.models ||
+      providers[BEDROCK_PROVIDER_ID]?.models,
     proxy: yamlBedrock?.proxy || providers[BEDROCK_PROVIDER_ID]?.proxy,
   };
 
@@ -502,13 +525,13 @@ function applyBedrockProviderConfig(
 function buildConfig(yamlData: YamlData): ServerConfig {
   const image = applyOpenAIImageFallback(
     loadEnvSection(IMAGE_ENV_MAP, yamlData.image, {
-      keylessProviders: new Set(['lemonade']),
+      keylessProviders: new Set(["lemonade"]),
     }),
     yamlData.image,
   );
   const providers = applyBedrockProviderConfig(
     loadEnvSection(LLM_ENV_MAP, yamlData.providers, {
-      keylessProviders: new Set(['ollama', 'lemonade', BEDROCK_PROVIDER_ID]),
+      keylessProviders: new Set(["ollama", "lemonade", BEDROCK_PROVIDER_ID]),
     }),
     yamlData.providers,
   );
@@ -516,22 +539,22 @@ function buildConfig(yamlData: YamlData): ServerConfig {
   return {
     providers,
     tts: loadEnvSection(TTS_ENV_MAP, yamlData.tts, {
-      keylessProviders: new Set(['voxcpm-tts', 'lemonade-tts']),
+      keylessProviders: new Set(["voxcpm-tts", "lemonade-tts"]),
     }),
     asr: loadEnvSection(ASR_ENV_MAP, yamlData.asr, {
-      keylessProviders: new Set(['funasr-asr', 'lemonade-asr']),
+      keylessProviders: new Set(["funasr-asr", "lemonade-asr"]),
     }),
     pdf: applyAliDocMindFallback(
       loadEnvSection(PDF_ENV_MAP, yamlData.pdf, {
         requiresBaseUrl: true,
-        baseUrlOptionalProviders: new Set(['mineru-cloud']),
+        baseUrlOptionalProviders: new Set(["mineru-cloud"]),
       }),
       yamlData.pdf,
     ),
     image,
     video: loadEnvSection(VIDEO_ENV_MAP, yamlData.video),
-    webSearch: loadEnvSection(WEB_SEARCH_ENV_MAP, yamlData['web-search'], {
-      keylessProviders: new Set(['brave', 'searxng']),
+    webSearch: loadEnvSection(WEB_SEARCH_ENV_MAP, yamlData["web-search"], {
+      keylessProviders: new Set(["brave", "searxng"]),
     }),
     disabled: collectDisabledProviders(yamlData),
   };
@@ -555,13 +578,13 @@ function logConfig(config: ServerConfig, label: string): void {
 }
 
 function getConfig(): ServerConfig {
-  const cached = _configs.get('');
+  const cached = _configs.get("");
   if (cached) return cached;
 
   const yamlData = loadYamlFile(DEFAULT_FILENAME);
   const config = buildConfig(yamlData);
   logConfig(config, DEFAULT_FILENAME);
-  _configs.set('', config);
+  _configs.set("", config);
   return config;
 }
 
@@ -577,15 +600,28 @@ function getConfig(): ServerConfig {
 // server config (the bug class #533 patched route-by-route).
 // ---------------------------------------------------------------------------
 
-type ProviderSection = 'providers' | 'tts' | 'asr' | 'pdf' | 'image' | 'video' | 'webSearch';
+type ProviderSection =
+  | "providers"
+  | "tts"
+  | "asr"
+  | "pdf"
+  | "image"
+  | "video"
+  | "webSearch";
 
 /** Whether the operator configured this provider in the given section. */
-export function isServerConfiguredProvider(section: ProviderSection, providerId: string): boolean {
+export function isServerConfiguredProvider(
+  section: ProviderSection,
+  providerId: string,
+): boolean {
   return !!getConfig()[section][providerId];
 }
 
 /** Whether the operator force-disabled this provider in the given capability section (server precedence). */
-export function isServerProviderDisabled(section: CapabilitySection, providerId: string): boolean {
+export function isServerProviderDisabled(
+  section: CapabilitySection,
+  providerId: string,
+): boolean {
   return getConfig().disabled[section].has(providerId);
 }
 
@@ -609,8 +645,8 @@ function resolveSectionApiKey(
   clientKey?: string,
 ): string {
   const entry = getConfig()[section][providerId];
-  if (entry) return entry.apiKey || ''; // managed: server key is authoritative
-  return clientKey || ''; // unmanaged: client-supplied key only
+  if (entry) return entry.apiKey || ""; // managed: server key is authoritative
+  return clientKey || ""; // unmanaged: client-supplied key only
 }
 
 function resolveSectionBaseUrl(
@@ -637,19 +673,23 @@ export function getServerProviders(): Record<string, { models?: string[] }> {
   const result: Record<string, { models?: string[] }> = {};
   for (const [id, entry] of Object.entries(cfg.providers)) {
     result[id] = {};
-    if (entry.models && entry.models.length > 0) result[id].models = entry.models;
+    if (entry.models && entry.models.length > 0)
+      result[id].models = entry.models;
   }
   return result;
 }
 
 /** Resolve API key. Managed provider ⇒ server key; otherwise client key. */
 export function resolveApiKey(providerId: string, clientKey?: string): string {
-  return resolveSectionApiKey('providers', providerId, clientKey);
+  return resolveSectionApiKey("providers", providerId, clientKey);
 }
 
 /** Resolve base URL. Managed provider ⇒ server URL; otherwise client URL. */
-export function resolveBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  return resolveSectionBaseUrl('providers', providerId, clientBaseUrl);
+export function resolveBaseUrl(
+  providerId: string,
+  clientBaseUrl?: string,
+): string | undefined {
+  return resolveSectionBaseUrl("providers", providerId, clientBaseUrl);
 }
 
 /** Resolve proxy URL for a provider (server config only) */
@@ -667,7 +707,10 @@ export function resolveProxy(providerId: string): string | undefined {
  * providers (`{ disabled: true }`). A force-disabled provider is reported as
  * disabled even when it is otherwise configured — disable wins (#665).
  */
-export function getServerTTSProviders(): Record<string, { disabled?: boolean }> {
+export function getServerTTSProviders(): Record<
+  string,
+  { disabled?: boolean }
+> {
   const cfg = getConfig();
   const result: Record<string, { disabled?: boolean }> = {};
   for (const id of Object.keys(cfg.tts)) result[id] = {};
@@ -682,38 +725,46 @@ export function getServerTTSProviders(): Record<string, { disabled?: boolean }> 
  */
 export function enabledServerTTSProviderIds(): string[] {
   return Object.entries(getServerTTSProviders())
-    .filter(([id, info]) => id !== 'browser-native-tts' && !info.disabled)
+    .filter(([id, info]) => id !== "browser-native-tts" && !info.disabled)
     .map(([id]) => id);
 }
 
-export function resolveTTSApiKey(providerId: string, clientKey?: string): string {
-  return resolveSectionApiKey('tts', providerId, clientKey);
+export function resolveTTSApiKey(
+  providerId: string,
+  clientKey?: string,
+): string {
+  return resolveSectionApiKey("tts", providerId, clientKey);
 }
 
 /** Whether the operator force-disabled this TTS provider (server precedence, #665). */
 export function isServerTTSProviderDisabled(providerId: string): boolean {
-  return isServerProviderDisabled('tts', providerId);
+  return isServerProviderDisabled("tts", providerId);
 }
 
-export function resolveTTSBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
+export function resolveTTSBaseUrl(
+  providerId: string,
+  clientBaseUrl?: string,
+): string | undefined {
   return (
-    resolveSectionBaseUrl('tts', providerId, clientBaseUrl) ||
+    resolveSectionBaseUrl("tts", providerId, clientBaseUrl) ||
     TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS]?.defaultBaseUrl
   );
 }
 
 /** Resolve the server-only Qwen VC model override without exposing env values to clients. */
 export function resolveQwenVoiceCloneModel(): string {
-  return process.env.TTS_QWEN_VOICE_CLONE_MODEL || DEFAULT_QWEN_TTS_VOICE_CLONE_MODEL;
+  return (
+    process.env.TTS_QWEN_VOICE_CLONE_MODEL || DEFAULT_QWEN_TTS_VOICE_CLONE_MODEL
+  );
 }
 
 export class TTSModelNotAllowedError extends Error {
-  readonly code = 'INVALID_REQUEST';
+  readonly code = "INVALID_REQUEST";
   readonly httpStatus = 400;
 
   constructor(providerId: string, modelId: string) {
     super(`Model "${modelId}" is not allowed for provider "${providerId}"`);
-    this.name = 'TTSModelNotAllowedError';
+    this.name = "TTSModelNotAllowedError";
   }
 }
 
@@ -731,9 +782,10 @@ export function resolveTTSModel(
   const entry = getConfig().tts[providerId];
   const pinnedModels = entry?.models?.filter(Boolean) ?? [];
 
-  if (providerId === 'qwen-tts') {
+  if (providerId === "qwen-tts") {
     const vcModel = resolveQwenVoiceCloneModel();
-    const requestedIsVCSentinel = !!clientModel && isQwenVoiceCloneModel(clientModel, vcModel);
+    const requestedIsVCSentinel =
+      !!clientModel && isQwenVoiceCloneModel(clientModel, vcModel);
     const normalizedClientModel = requestedIsVCSentinel ? vcModel : clientModel;
     const allowedModels = new Set([...pinnedModels, vcModel]);
 
@@ -747,14 +799,19 @@ export function resolveTTSModel(
 
     if (voiceId) {
       if (!isQwenCatalogVoice(voiceId)) return vcModel;
-      const pinnedCatalogModel = pinnedModels.find((model) => model !== vcModel);
+      const pinnedCatalogModel = pinnedModels.find(
+        (model) => model !== vcModel,
+      );
       if (pinnedModels.length > 0 && !pinnedCatalogModel) {
-        throw new TTSModelNotAllowedError(providerId, TTS_PROVIDERS['qwen-tts'].defaultModelId);
+        throw new TTSModelNotAllowedError(
+          providerId,
+          TTS_PROVIDERS["qwen-tts"].defaultModelId,
+        );
       }
       // Self-heal persisted VC-model + catalog-voice wedges. Prefer the first
       // operator-pinned non-VC model, otherwise the catalog default.
       if (normalizedClientModel === vcModel) {
-        return pinnedCatalogModel || TTS_PROVIDERS['qwen-tts'].defaultModelId;
+        return pinnedCatalogModel || TTS_PROVIDERS["qwen-tts"].defaultModelId;
       }
     }
 
@@ -776,7 +833,10 @@ export function resolveTTSModel(
  * (presence = managed flag) plus operator force-disabled providers
  * (`{ disabled: true }`), mirroring the TTS listing — disable wins (#665).
  */
-export function getServerASRProviders(): Record<string, { disabled?: boolean }> {
+export function getServerASRProviders(): Record<
+  string,
+  { disabled?: boolean }
+> {
   const cfg = getConfig();
   const result: Record<string, { disabled?: boolean }> = {};
   for (const id of Object.keys(cfg.asr)) result[id] = {};
@@ -784,12 +844,18 @@ export function getServerASRProviders(): Record<string, { disabled?: boolean }> 
   return result;
 }
 
-export function resolveASRApiKey(providerId: string, clientKey?: string): string {
-  return resolveSectionApiKey('asr', providerId, clientKey);
+export function resolveASRApiKey(
+  providerId: string,
+  clientKey?: string,
+): string {
+  return resolveSectionApiKey("asr", providerId, clientKey);
 }
 
-export function resolveASRBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  return resolveSectionBaseUrl('asr', providerId, clientBaseUrl);
+export function resolveASRBaseUrl(
+  providerId: string,
+  clientBaseUrl?: string,
+): string | undefined {
+  return resolveSectionBaseUrl("asr", providerId, clientBaseUrl);
 }
 
 /** First operator-configured ASR provider that is not force-disabled. */
@@ -803,7 +869,10 @@ export function resolveServerASRProviderId(): string | undefined {
  * (`ASR_<PREFIX>_MODELS`), the allowlisted client choice wins and the first
  * entry is the managed default; otherwise the client model wins.
  */
-export function resolveASRModel(providerId: string, clientModel?: string): string | undefined {
+export function resolveASRModel(
+  providerId: string,
+  clientModel?: string,
+): string | undefined {
   const serverModels = getConfig().asr[providerId]?.models;
   if (serverModels?.length) {
     if (clientModel && serverModels.includes(clientModel)) return clientModel;
@@ -821,12 +890,18 @@ export function getServerPDFProviders(): Record<string, Record<string, never>> {
   return Object.fromEntries(Object.keys(getConfig().pdf).map((id) => [id, {}]));
 }
 
-export function resolvePDFApiKey(providerId: string, clientKey?: string): string {
-  return resolveSectionApiKey('pdf', providerId, clientKey);
+export function resolvePDFApiKey(
+  providerId: string,
+  clientKey?: string,
+): string {
+  return resolveSectionApiKey("pdf", providerId, clientKey);
 }
 
-export function resolvePDFBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
-  return resolveSectionBaseUrl('pdf', providerId, clientBaseUrl);
+export function resolvePDFBaseUrl(
+  providerId: string,
+  clientBaseUrl?: string,
+): string | undefined {
+  return resolveSectionBaseUrl("pdf", providerId, clientBaseUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -846,21 +921,25 @@ export function getServerImageProviders(): Record<
   const result: Record<string, { models?: string[]; disabled?: boolean }> = {};
   for (const [id, entry] of Object.entries(cfg.image)) {
     result[id] = {};
-    if (entry.models && entry.models.length > 0) result[id].models = entry.models;
+    if (entry.models && entry.models.length > 0)
+      result[id].models = entry.models;
   }
   for (const id of cfg.disabled.image) result[id] = { disabled: true };
   return result;
 }
 
-export function resolveImageApiKey(providerId: string, clientKey?: string): string {
-  return resolveSectionApiKey('image', providerId, clientKey);
+export function resolveImageApiKey(
+  providerId: string,
+  clientKey?: string,
+): string {
+  return resolveSectionApiKey("image", providerId, clientKey);
 }
 
 export function resolveImageBaseUrl(
   providerId: string,
   clientBaseUrl?: string,
 ): string | undefined {
-  return resolveSectionBaseUrl('image', providerId, clientBaseUrl);
+  return resolveSectionBaseUrl("image", providerId, clientBaseUrl);
 }
 
 /**
@@ -879,7 +958,10 @@ export function resolveServerImageProviderId(): string | undefined {
  * (`IMAGE_<PREFIX>_MODELS`), the allowlisted client choice wins and the first
  * entry is the managed default; otherwise the client model wins.
  */
-export function resolveImageModel(providerId: string, clientModel?: string): string | undefined {
+export function resolveImageModel(
+  providerId: string,
+  clientModel?: string,
+): string | undefined {
   const serverModels = getConfig().image[providerId]?.models;
   if (serverModels?.length) {
     if (clientModel && serverModels.includes(clientModel)) return clientModel;
@@ -894,7 +976,7 @@ export function resolveImageModel(providerId: string, clientModel?: string): str
 
 /**
  * Returns video providers the client must know about: server-managed providers
- * (presence = managed flag) plus operator force-disabled providers
+ * (allowed models only, no base URLs) plus operator force-disabled providers
  * (`{ disabled: true }`), mirroring the TTS listing — disable wins (#665).
  */
 export function getServerVideoProviders(): Record<
@@ -905,21 +987,25 @@ export function getServerVideoProviders(): Record<
   const result: Record<string, { models?: string[]; disabled?: boolean }> = {};
   for (const [id, entry] of Object.entries(cfg.video)) {
     result[id] = {};
-    if (entry.models && entry.models.length > 0) result[id].models = entry.models;
+    if (entry.models && entry.models.length > 0)
+      result[id].models = entry.models;
   }
   for (const id of cfg.disabled.video) result[id] = { disabled: true };
   return result;
 }
 
-export function resolveVideoApiKey(providerId: string, clientKey?: string): string {
-  return resolveSectionApiKey('video', providerId, clientKey);
+export function resolveVideoApiKey(
+  providerId: string,
+  clientKey?: string,
+): string {
+  return resolveSectionApiKey("video", providerId, clientKey);
 }
 
 export function resolveVideoBaseUrl(
   providerId: string,
   clientBaseUrl?: string,
 ): string | undefined {
-  return resolveSectionBaseUrl('video', providerId, clientBaseUrl);
+  return resolveSectionBaseUrl("video", providerId, clientBaseUrl);
 }
 
 /**
@@ -938,7 +1024,10 @@ export function resolveServerVideoProviderId(): string | undefined {
  * (`VIDEO_<PREFIX>_MODELS`), the allowlisted client choice wins and the first
  * entry is the managed default; otherwise the client model wins.
  */
-export function resolveVideoModel(providerId: string, clientModel?: string): string | undefined {
+export function resolveVideoModel(
+  providerId: string,
+  clientModel?: string,
+): string | undefined {
   const serverModels = getConfig().video[providerId]?.models;
   if (serverModels?.length) {
     if (clientModel && serverModels.includes(clientModel)) return clientModel;
@@ -956,7 +1045,10 @@ export function resolveVideoModel(providerId: string, clientModel?: string): str
  * providers (presence = managed flag) plus operator force-disabled providers
  * (`{ disabled: true }`), mirroring the TTS listing — disable wins (#665).
  */
-export function getServerWebSearchProviders(): Record<string, { disabled?: boolean }> {
+export function getServerWebSearchProviders(): Record<
+  string,
+  { disabled?: boolean }
+> {
   const cfg = getConfig();
   const result: Record<string, { disabled?: boolean }> = {};
   for (const id of Object.keys(cfg.webSearch)) result[id] = {};
@@ -972,19 +1064,27 @@ export function getServerWebSearchProviders(): Record<string, { disabled?: boole
  * - resolveWebSearchApiKey(providerId, clientKey) -> provider-specific resolution
  */
 export function resolveWebSearchApiKey(clientKey?: string): string;
-export function resolveWebSearchApiKey(providerId: string, clientKey?: string): string;
-export function resolveWebSearchApiKey(providerIdOrClientKey?: string, clientKey?: string): string {
+export function resolveWebSearchApiKey(
+  providerId: string,
+  clientKey?: string,
+): string;
+export function resolveWebSearchApiKey(
+  providerIdOrClientKey?: string,
+  clientKey?: string,
+): string {
   const hasProviderId = arguments.length >= 2;
-  const providerId = hasProviderId ? providerIdOrClientKey || 'tavily' : 'tavily';
+  const providerId = hasProviderId
+    ? providerIdOrClientKey || "tavily"
+    : "tavily";
   const effectiveClientKey = hasProviderId ? clientKey : providerIdOrClientKey;
-  return resolveSectionApiKey('webSearch', providerId, effectiveClientKey);
+  return resolveSectionApiKey("webSearch", providerId, effectiveClientKey);
 }
 
 export function resolveWebSearchBaseUrl(
   providerId: string,
   clientBaseUrl?: string,
 ): string | undefined {
-  return resolveSectionBaseUrl('webSearch', providerId, clientBaseUrl);
+  return resolveSectionBaseUrl("webSearch", providerId, clientBaseUrl);
 }
 
 /**
@@ -1001,7 +1101,9 @@ export function resolveWebSearchModel(
   return clientModel;
 }
 
-export function resolveServerWebSearchProviderId(preferredProviderId?: string): string | undefined {
+export function resolveServerWebSearchProviderId(
+  preferredProviderId?: string,
+): string | undefined {
   const webSearch = getConfig().webSearch;
   const disabled = getConfig().disabled.webSearch;
   const enabled = (id: string) => !disabled.has(id);
@@ -1012,12 +1114,11 @@ export function resolveServerWebSearchProviderId(preferredProviderId?: string): 
   ) {
     return preferredProviderId;
   }
-  if (enabled('tavily') && webSearch.tavily?.apiKey) return 'tavily';
-  if (enabled('exa') && webSearch.exa?.apiKey) return 'exa';
-  if (enabled('bocha') && webSearch.bocha?.apiKey) return 'bocha';
-  if (enabled('baidu') && webSearch.baidu?.apiKey) return 'baidu';
-  if (enabled('minimax') && webSearch.minimax?.apiKey) return 'minimax';
-  if (enabled('claude') && webSearch.claude?.apiKey) return 'claude';
+  if (enabled("tavily") && webSearch.tavily?.apiKey) return "tavily";
+  if (enabled("bocha") && webSearch.bocha?.apiKey) return "bocha";
+  if (enabled("baidu") && webSearch.baidu?.apiKey) return "baidu";
+  if (enabled("minimax") && webSearch.minimax?.apiKey) return "minimax";
+  if (enabled("claude") && webSearch.claude?.apiKey) return "claude";
   return Object.keys(webSearch).find(enabled);
 }
 
@@ -1031,7 +1132,7 @@ export function resolveServerWebSearchProviderId(preferredProviderId?: string): 
  * concurrency quotas, where a bursty default would surface as 429s.
  */
 export function getParallelSceneConcurrency(): number {
-  const raw = Number.parseInt(process.env.PARALLEL_SCENE_CONCURRENCY ?? '', 10);
+  const raw = Number.parseInt(process.env.PARALLEL_SCENE_CONCURRENCY ?? "", 10);
   if (!Number.isFinite(raw) || raw <= 0) return 0;
   return Math.min(raw, 10);
 }

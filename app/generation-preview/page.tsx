@@ -136,7 +136,6 @@ function GenerationPreviewContent() {
       priority: number;
     }>
   >([]);
-  const agentRevealResolveRef = useRef<(() => void) | null>(null);
   const reviewOutlineEnabled = useSettingsStore((s) => s.reviewOutlineEnabled);
   const setReviewOutlineEnabled = useSettingsStore((s) => s.setReviewOutlineEnabled);
 
@@ -878,12 +877,9 @@ function GenerationPreviewContent() {
           settings.setAgentSelectionIsUserSet(false);
           stage.agentIds = savedIds;
 
-          // Show card-reveal modal, continue generation once all cards are revealed
+          // Keep the generated roster available for optional inspection without
+          // interrupting the one-click generation flow.
           setGeneratedAgents(agentData.agents);
-          setShowAgentReveal(true);
-          await new Promise<void>((resolve) => {
-            agentRevealResolveRef.current = resolve;
-          });
 
           agents = savedIds
             .map((id) => useAgentRegistry.getState().getAgent(id))
@@ -1527,10 +1523,6 @@ function GenerationPreviewContent() {
         agents={generatedAgents}
         open={showAgentReveal}
         onClose={() => setShowAgentReveal(false)}
-        onAllRevealed={() => {
-          agentRevealResolveRef.current?.();
-          agentRevealResolveRef.current = null;
-        }}
       />
     </div>
   );

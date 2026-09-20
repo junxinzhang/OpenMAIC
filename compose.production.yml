@@ -1,0 +1,55 @@
+services:
+  openmaic:
+    image: openmaic:20260830-one-click-r5
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_PERSISTENCE: "1"
+        NEXT_PUBLIC_PERSISTENCE_TOKEN: ${PERSISTENCE_DEV_TOKEN}
+    ports:
+      - "127.0.0.1:3210:3000"
+    env_file:
+      - .env.production
+    environment:
+      RENDER_SERVICE_URL: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - openmaic-data:/app/data
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 3g
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: openmaic
+      POSTGRES_USER: openmaic
+      POSTGRES_PASSWORD: ${PERSISTENCE_POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openmaic -d openmaic"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - openmaic-postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  openmaic-data:
+  openmaic-postgres:

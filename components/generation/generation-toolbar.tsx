@@ -1,5 +1,7 @@
 'use client';
 
+import { prioritizeZaokit } from '@/lib/ai/provider-order';
+
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Bot, Brain, Check, Paperclip, FileText, X, Globe2, Search } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -300,7 +302,7 @@ export function GenerationToolbar({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(PDF_PROVIDERS).map((provider) => {
+                  {prioritizeZaokit(Object.values(PDF_PROVIDERS)).map((provider) => {
                     const cfg = pdfProvidersConfig[provider.id];
                     // AliDocMind authenticates with an AK/SK pair rather than a
                     // single apiKey — recognize either credential shape.
@@ -488,7 +490,7 @@ export function GenerationToolbar({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.values(WEB_SEARCH_PROVIDERS).map((provider) => {
+                    {prioritizeZaokit(Object.values(WEB_SEARCH_PROVIDERS)).map((provider) => {
                       const cfg = webSearchProvidersConfig[provider.id];
                       const available = isWebSearchProviderConfigured(provider, cfg);
                       return (
@@ -812,7 +814,7 @@ function ModelSettingsPopover({
       model.name.toLowerCase().includes(searchTerm) ||
       model.id.toLowerCase().includes(searchTerm);
 
-    return configuredProviders
+    return prioritizeZaokit(configuredProviders)
       .map((provider) => ({
         provider,
         matchingModels: provider.models.filter(matchesSearch),

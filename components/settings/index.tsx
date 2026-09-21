@@ -1,5 +1,7 @@
 'use client';
 
+import { prioritizeZaokit } from '@/lib/ai/provider-order';
+
 import { isRetiredModel } from '@/lib/ai/retired-models';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -90,7 +92,7 @@ function ProviderListColumn<T extends string>({
   return (
     <div className="flex-shrink-0 bg-background flex flex-col" style={{ width }}>
       <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-        {providers.map((provider) => (
+        {prioritizeZaokit(providers).map((provider) => (
           <button
             key={provider.id}
             onClick={() => onSelect(provider.id)}

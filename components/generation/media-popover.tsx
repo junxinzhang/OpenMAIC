@@ -1,5 +1,7 @@
 'use client';
 
+import { prioritizeZaokit } from '@/lib/ai/provider-order';
+
 import { useState, useCallback, useMemo, Fragment, useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -42,6 +44,7 @@ interface MediaPopoverProps {
 
 // ─── Provider icon maps ───
 const IMAGE_PROVIDER_ICONS: Record<string, string> = {
+  'zaokit-image': '/logos/zaokit.png',
   seedream: '/logos/doubao.svg',
   'openai-image': '/logos/openai.svg',
   'qwen-image': '/logos/bailian.svg',
@@ -51,6 +54,7 @@ const IMAGE_PROVIDER_ICONS: Record<string, string> = {
   'openrouter-image': '/logos/openrouter.svg',
 };
 const VIDEO_PROVIDER_ICONS: Record<string, string> = {
+  'zaokit-video': '/logos/zaokit.png',
   seedance: '/logos/doubao.svg',
   kling: '/logos/kling.svg',
   veo: '/logos/gemini.svg',
@@ -168,7 +172,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   // ─── Grouped select data (only available providers) ───
   const imageGroups = useMemo(
     () =>
-      Object.values(IMAGE_PROVIDERS)
+      prioritizeZaokit(Object.values(IMAGE_PROVIDERS))
         .filter((p) => cfgOk(imageProvidersConfig, p.id, p.requiresApiKey))
         .map((p) => {
           const catalog = p.id === 'openrouter-image' ? openRouterImageModels : p.models;
@@ -194,7 +198,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
 
   const videoGroups = useMemo(
     () =>
-      Object.values(VIDEO_PROVIDERS)
+      prioritizeZaokit(Object.values(VIDEO_PROVIDERS))
         .filter((p) => cfgOk(videoProvidersConfig, p.id, p.requiresApiKey))
         .map((p) => ({
           groupId: p.id,
@@ -217,7 +221,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     const groups: SelectGroupData[] = [];
 
     // Built-in providers
-    for (const p of Object.values(ASR_PROVIDERS)) {
+    for (const p of prioritizeZaokit(Object.values(ASR_PROVIDERS))) {
       if (!cfgOk(asrProvidersConfig, p.id, p.requiresApiKey)) continue;
       groups.push({
         groupId: p.id,

@@ -1,5 +1,7 @@
 'use client';
 
+import { prioritizeZaokit } from '@/lib/ai/provider-order';
+
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,7 +94,7 @@ export function TokenPlanSettings() {
 
   const grouped = PRESET_CATEGORY_ORDER.map((cat) => ({
     category: cat,
-    presets: TOKEN_PLAN_PRESETS.filter((p) => p.category === cat),
+    presets: prioritizeZaokit(TOKEN_PLAN_PRESETS.filter((p) => p.category === cat)),
   })).filter((g) => g.presets.length > 0);
 
   const presetSavedKey = (preset: TokenPlanPreset): string => {

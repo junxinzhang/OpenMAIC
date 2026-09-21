@@ -5,7 +5,7 @@
 /**
  * PDF Provider IDs
  */
-export type PDFProviderId = 'unpdf' | 'mineru' | 'mineru-cloud' | 'alidocmind';
+export type PDFProviderId = 'zaokit' | 'unpdf' | 'mineru' | 'mineru-cloud' | 'alidocmind';
 
 /**
  * PDF Provider Configuration

@@ -1710,6 +1710,7 @@
     "imageProvider": "Nhà cung cấp tạo ảnh",
     "imageModel": "Model tạo ảnh",
     "providerSeedream": "Seedream (ByteDance)",
+    "providerZaokit": "Zaokit",
     "providerOpenAIImage": "OpenAI Image",
     "providerQwenImage": "Qwen Image (Alibaba)",
     "providerNanoBanana": "Nano Banana (Gemini)",
@@ -1852,6 +1853,7 @@
       "updateKey": "Cập nhật khóa",
       "modelsCount": "{{n}} model",
       "capabilities": "Khả năng được cung cấp",
+      "zaokitNote": "These are connection presets. Available features and models depend on your Zaokit account. Video, document reading, and web search require gateway support; saving settings does not verify access.",
       "offeredNote": "Các model gói này cung cấp. Hãy chọn những model bạn muốn hiện trên thanh tạo bài — mức khả dụng tùy hạng gói của bạn, và model không được hỗ trợ sẽ báo lỗi lúc tạo bài."
     },
     "skills": {

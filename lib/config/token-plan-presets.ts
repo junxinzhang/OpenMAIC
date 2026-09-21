@@ -16,8 +16,8 @@ import type { ProviderType } from '@/lib/types/provider';
 /** Loose grouping for the preset list UI. */
 export type PresetCategory = 'official' | 'aggregator' | 'token_plan' | 'third_party';
 
-/** The modalities a token plan can be applied to. ASR is omitted = not adapted. */
-export type TokenPlanModality = 'llm' | 'image' | 'video' | 'tts' | 'webSearch';
+/** The modalities a token plan can be applied to. ASR is supported when declared by a preset. */
+export type TokenPlanModality = 'llm' | 'image' | 'video' | 'tts' | 'asr' | 'pdf' | 'webSearch';
 
 /** Where a token plan maps in one modality's provider registry. */
 export interface TokenPlanModalityTarget {
@@ -59,7 +59,15 @@ export interface TokenPlanPreset {
 }
 
 /** Human-facing order of modalities in the apply result. */
-export const MODALITY_ORDER: TokenPlanModality[] = ['llm', 'image', 'video', 'tts', 'webSearch'];
+export const MODALITY_ORDER: TokenPlanModality[] = [
+  'llm',
+  'image',
+  'video',
+  'tts',
+  'asr',
+  'pdf',
+  'webSearch',
+];
 
 /**
  * Built-in token plans.
@@ -76,6 +84,44 @@ export const MODALITY_ORDER: TokenPlanModality[] = ['llm', 'image', 'video', 'tt
  * - Volcengine Ark Agent Plan: LLM/image/video/TTS/web-search via the plan key.
  */
 export const TOKEN_PLAN_PRESETS: TokenPlanPreset[] = [
+  {
+    id: 'zaokit',
+    name: 'Zaokit AI Token Plan',
+    websiteUrl: 'https://platform.zaokit.com',
+    apiKeyPlaceholder: 'sk-...',
+    icon: '/logos/zaokit.png',
+    category: 'token_plan',
+    modalities: {
+      llm: {
+        providerId: 'zaokit',
+        baseUrl: 'https://api.zaokit.com/v1',
+        apiFormat: 'openai',
+        defaultModels: ['gpt-6-astra'],
+      },
+      image: {
+        providerId: 'zaokit-image',
+        baseUrl: 'https://api.zaokit.com/v1',
+        defaultModels: ['gpt-image-2'],
+      },
+      pdf: { providerId: 'zaokit', baseUrl: 'https://api.zaokit.com/v1' },
+      webSearch: { providerId: 'zaokit', baseUrl: 'https://api.zaokit.com/v1' },
+      video: {
+        providerId: 'zaokit-video',
+        baseUrl: 'https://api.zaokit.com/v1',
+        defaultModels: ['sora-2', 'sora-2-pro'],
+      },
+      asr: {
+        providerId: 'zaokit-asr',
+        baseUrl: 'https://api.zaokit.com/v1',
+        defaultModelId: 'gpt-4o-mini-transcribe',
+      },
+      tts: {
+        providerId: 'zaokit-tts',
+        baseUrl: 'https://api.zaokit.com/v1',
+        defaultModelId: 'gpt-4o-mini-tts',
+      },
+    },
+  },
   // ── Gateway token plan (one key, vendor wire formats) ─────────────────────
   {
     // TokenDance is a model gateway. Chat and image generation are

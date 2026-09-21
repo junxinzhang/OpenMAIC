@@ -80,6 +80,7 @@
  * Keep in sync with TTS_PROVIDERS registry in constants.ts
  */
 export type BuiltInTTSProviderId =
+  | 'zaokit-tts'
   | 'openai-tts'
   | 'azure-tts'
   | 'glm-tts'
@@ -186,6 +187,7 @@ export interface TTSModelConfig {
  * Keep in sync with ASR_PROVIDERS registry in constants.ts
  */
 export type BuiltInASRProviderId =
+  | 'zaokit-asr'
   | 'openai-whisper'
   | 'browser-native'
   | 'qwen-asr'

@@ -14,6 +14,7 @@
 import type { ASRProviderId, TTSProviderId } from './types';
 
 const ASR_PROVIDER_NAME_KEYS: Record<string, string> = {
+  'zaokit-asr': 'settings.providerZaokit',
   'openai-whisper': 'settings.providerOpenAIWhisper',
   'browser-native': 'settings.providerBrowserNative',
   'qwen-asr': 'settings.providerQwenASR',
@@ -23,6 +24,7 @@ const ASR_PROVIDER_NAME_KEYS: Record<string, string> = {
 };
 
 const TTS_PROVIDER_NAME_KEYS: Record<string, string> = {
+  'zaokit-tts': 'settings.providerZaokit',
   'openai-tts': 'settings.providerOpenAITTS',
   'azure-tts': 'settings.providerAzureTTS',
   'glm-tts': 'settings.providerGLMTTS',

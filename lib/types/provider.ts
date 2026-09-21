@@ -6,6 +6,7 @@
  * Built-in provider IDs
  */
 export type BuiltInProviderId =
+  | 'zaokit'
   | 'openai'
   | 'azure'
   | 'atlascloud'

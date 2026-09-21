@@ -1710,6 +1710,7 @@
     "imageProvider": "图像生成提供商",
     "imageModel": "图像生成模型",
     "providerSeedream": "Seedream（字节豆包）",
+    "providerZaokit": "Zaokit",
     "providerOpenAIImage": "OpenAI 图像",
     "providerQwenImage": "Qwen Image（阿里通义）",
     "providerNanoBanana": "Nano Banana（Gemini）",
@@ -1852,6 +1853,7 @@
       "updateKey": "更新密钥",
       "modelsCount": "{{n}} 个模型",
       "capabilities": "套餐提供的能力",
+      "zaokitNote": "这里提供连接预设，实际可用的功能和模型以你的 Zaokit 账户为准。视频、文档读取和网络搜索需要服务端支持；保存设置不代表已验证可用。",
       "offeredNote": "套餐提供的模型清单。请在生成界面选择需要使用的模型——是否可用取决于你的套餐档位，不支持的模型会在生成时报错。"
     },
     "skills": {

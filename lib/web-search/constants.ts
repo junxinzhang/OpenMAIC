@@ -8,6 +8,14 @@ import type { BaiduSubSources, WebSearchProviderId, WebSearchProviderConfig } fr
  * Web Search Provider Registry
  */
 export const WEB_SEARCH_PROVIDERS: Record<WebSearchProviderId, WebSearchProviderConfig> = {
+  zaokit: {
+    id: 'zaokit',
+    name: 'Zaokit',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://api.zaokit.com/v1',
+    endpointPath: '/responses',
+    icon: '/logos/zaokit.png',
+  },
   tavily: {
     id: 'tavily',
     name: 'Tavily',

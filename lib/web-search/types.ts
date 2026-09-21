@@ -6,6 +6,7 @@
  * Web Search Provider IDs
  */
 export type WebSearchProviderId =
+  | 'zaokit'
   | 'tavily'
   | 'exa'
   | 'bocha'

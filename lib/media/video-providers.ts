@@ -23,8 +23,25 @@ import {
   testOpenRouterVideoConnectivity,
 } from './adapters/openrouter-video-adapter';
 import { OPENROUTER_DEFAULT_BASE_URL } from './adapters/openrouter-image-adapter';
+import {
+  generateWithZaokitVideo,
+  testZaokitVideoConnectivity,
+} from './adapters/zaokit-video-adapter';
 
 export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
+  'zaokit-video': {
+    id: 'zaokit-video',
+    name: 'Zaokit',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://api.zaokit.com/v1',
+    icon: '/logos/zaokit.png',
+    models: [
+      { id: 'sora-2', name: 'Sora 2' },
+      { id: 'sora-2-pro', name: 'Sora 2 Pro' },
+    ],
+    supportedAspectRatios: ['16:9', '9:16'],
+    supportedDurations: [4, 8, 12],
+  },
   seedance: {
     id: 'seedance',
     name: 'Seedance',
@@ -150,6 +167,8 @@ export async function testVideoConnectivity(
   switch (config.providerId) {
     case 'seedance':
       return testSeedanceConnectivity(config);
+    case 'zaokit-video':
+      return testZaokitVideoConnectivity(config);
     case 'kling':
       return testKlingConnectivity(config);
     case 'veo':
@@ -219,6 +238,8 @@ export async function generateVideo(
   switch (config.providerId) {
     case 'seedance':
       return generateWithSeedance(config, options);
+    case 'zaokit-video':
+      return generateWithZaokitVideo(config, options);
     case 'kling':
       return generateWithKling(config, options);
     case 'veo':

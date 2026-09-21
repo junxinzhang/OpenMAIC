@@ -142,6 +142,7 @@ import sharp from 'sharp';
 import type { PDFParserConfig } from './types';
 import type { ParsedPdfContent } from '@/lib/types/pdf';
 import { PDF_PROVIDERS } from './constants';
+import { parseWithZaokit } from './zaokit';
 import { createLogger } from '@/lib/logger';
 import { extractMinerUResult } from './mineru-parser';
 import { parseWithMinerUCloud } from './mineru-cloud';
@@ -216,6 +217,9 @@ export async function parsePDF(
   let result: ParsedPdfContent;
 
   switch (config.providerId) {
+    case 'zaokit':
+      result = await parseWithZaokit(config, pdfBuffer, options?.fileName);
+      break;
     case 'unpdf':
       result = await parseWithUnpdf(pdfBuffer, config.textOnly === true);
       break;

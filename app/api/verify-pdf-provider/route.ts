@@ -10,6 +10,7 @@ import {
 } from '@/lib/server/provider-config';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { MINERU_CLOUD_DEFAULT_BASE } from '@/lib/pdf/constants';
+import { zaokitFetch } from '@/lib/zaokit/api';
 
 const log = createLogger('Verify PDF Provider');
 
@@ -26,6 +27,23 @@ async function handlePOST(req: NextRequest) {
 
     // Managed providers are admin-owned: ignore any client-sent key/baseUrl.
     const managed = isServerConfiguredProvider('pdf', providerId);
+
+    if (providerId === 'zaokit') {
+      const resolvedBase = resolvePDFBaseUrl(providerId, managed ? undefined : baseUrl);
+      if (resolvedBase) {
+        const error = await validateUrlForSSRF(resolvedBase);
+        if (error) return apiError('INVALID_URL', 403, error);
+      }
+      await zaokitFetch(
+        '/models/gpt-6-astra',
+        {
+          apiKey: resolvePDFApiKey(providerId, managed ? undefined : apiKey),
+          baseUrl: resolvedBase,
+        },
+        { signal: AbortSignal.timeout(10_000) },
+      );
+      return apiSuccess({ message: 'Connection successful' });
+    }
 
     // AliDocMind: verify AK/SK by issuing a lightweight authenticated probe.
     if (providerId === 'alidocmind') {

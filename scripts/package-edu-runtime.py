@@ -20,7 +20,7 @@ with tarfile.open(output, 'w:gz') as archive:
         if any(part.startswith(('.env', 'client_secret_')) or part in ('data', 'logs', '.git') for part in relative.parts):
             continue
         archive.add(file, arcname=str(relative), recursive=False)
-    for source, prefix in [(root / '.next/static', '.next/static'), (root / 'public', 'public')]:
+    for source, prefix in [(root / '.next/server', '.next/server'), (root / '.next/static', '.next/static'), (root / 'public', 'public')]:
         for file in source.rglob('*'):
             archive.add(file, arcname=str(Path(prefix) / file.relative_to(source)), recursive=False)
 print(output)

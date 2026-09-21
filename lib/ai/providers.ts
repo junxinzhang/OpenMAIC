@@ -73,6 +73,22 @@ export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'open
  * Provider registry
  */
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
+  zaokit: {
+    id: 'zaokit',
+    name: 'Zaokit',
+    type: 'openai',
+    defaultBaseUrl: 'https://api.zaokit.com/v1',
+    requiresApiKey: true,
+    icon: '/logos/zaokit.png',
+    supportsModelDiscovery: true,
+    models: [
+      {
+        id: 'gpt-6-astra',
+        name: 'GPT-6 Astra',
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+    ],
+  },
   openai: {
     id: 'openai',
     name: 'OpenAI',
@@ -1929,10 +1945,7 @@ function shouldUseOpenAIResponsesApi(
 ): boolean {
   if (providerId !== 'openai') return false;
 
-  if (
-    usesCustomOpenAIBaseUrl(baseUrl) &&
-    process.env.OPENAI_COMPAT_USE_RESPONSES === 'true'
-  ) {
+  if (usesCustomOpenAIBaseUrl(baseUrl) && process.env.OPENAI_COMPAT_USE_RESPONSES === 'true') {
     return true;
   }
 

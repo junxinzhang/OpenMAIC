@@ -73,6 +73,21 @@ const DOCUMENT_EXTRACTOR_MANIFEST: Record<string, DocumentExtractorManifestEntry
       async: false,
     },
   },
+  zaokit: {
+    id: 'zaokit',
+    displayName: 'Zaokit',
+    version: '1',
+    supportedMimeTypes: [DOCUMENT_MIME_TYPES.pdf],
+    capabilities: {
+      text: true,
+      images: false,
+      tables: false,
+      formulas: false,
+      layout: false,
+      ocr: true,
+      async: false,
+    },
+  },
   unpdf: {
     id: 'unpdf',
     displayName: 'unpdf',

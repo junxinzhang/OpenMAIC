@@ -194,6 +194,7 @@ export const ALIDOCMIND_MIMES: readonly string[] = [
 ];
 
 export const PROVIDER_SUPPORTED_MIME_TYPES: Record<string, readonly string[]> = {
+  zaokit: [M.pdf],
   unpdf: [M.pdf],
   mineru: MINERU_SELFHOST_MIMES,
   'mineru-cloud': MINERU_CLOUD_MIMES,

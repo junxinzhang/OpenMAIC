@@ -12,6 +12,14 @@ export const ALIDOCMIND_DEFAULT_BASE = 'https://docmind-api.cn-hangzhou.aliyuncs
  * PDF Provider Registry
  */
 export const PDF_PROVIDERS: Record<PDFProviderId, PDFProviderConfig> = {
+  zaokit: {
+    id: 'zaokit',
+    name: 'Zaokit',
+    requiresApiKey: true,
+    baseUrl: 'https://api.zaokit.com/v1',
+    icon: '/logos/zaokit.png',
+    features: ['text', 'ocr'],
+  },
   unpdf: {
     id: 'unpdf',
     name: 'unpdf',

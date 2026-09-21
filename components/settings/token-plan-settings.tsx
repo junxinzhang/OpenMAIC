@@ -15,6 +15,8 @@ import {
   Video,
   Volume2,
   Search,
+  Mic,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -42,6 +44,8 @@ const MODALITY_LABEL_KEYS: Record<TokenPlanModality, string> = {
   image: 'settings.imageSettings',
   video: 'settings.videoSettings',
   tts: 'settings.ttsSettings',
+  asr: 'settings.asrSettings',
+  pdf: 'settings.pdfSettings',
   webSearch: 'settings.webSearchSettings',
 };
 
@@ -50,6 +54,8 @@ const MODALITY_ICONS: Record<TokenPlanModality, LucideIcon> = {
   image: ImageIcon,
   video: Video,
   tts: Volume2,
+  asr: Mic,
+  pdf: FileText,
   webSearch: Search,
 };
 
@@ -67,6 +73,8 @@ export function TokenPlanSettings() {
   const setProviderConfig = useSettingsStore((s) => s.setProviderConfig);
   const setImageProviderConfig = useSettingsStore((s) => s.setImageProviderConfig);
   const setVideoProviderConfig = useSettingsStore((s) => s.setVideoProviderConfig);
+  const setPDFProviderConfig = useSettingsStore((s) => s.setPDFProviderConfig);
+  const setASRProviderConfig = useSettingsStore((s) => s.setASRProviderConfig);
   const setTTSProviderConfig = useSettingsStore((s) => s.setTTSProviderConfig);
   const setWebSearchProviderConfig = useSettingsStore((s) => s.setWebSearchProviderConfig);
   const setImageProvider = useSettingsStore((s) => s.setImageProvider);
@@ -105,6 +113,8 @@ export function TokenPlanSettings() {
       setImageProviderConfig,
       setVideoProviderConfig,
       setTTSProviderConfig,
+      setASRProviderConfig,
+      setPDFProviderConfig,
       setWebSearchProviderConfig,
     });
   };
@@ -128,6 +138,8 @@ export function TokenPlanSettings() {
       setImageProviderConfig,
       setVideoProviderConfig,
       setTTSProviderConfig,
+      setASRProviderConfig,
+      setPDFProviderConfig,
       setWebSearchProviderConfig,
       setImageProvider,
       setImageModelId,
@@ -141,6 +153,8 @@ export function TokenPlanSettings() {
     setImageProviderConfig,
     setVideoProviderConfig,
     setTTSProviderConfig,
+    setASRProviderConfig,
+    setPDFProviderConfig,
     setWebSearchProviderConfig,
     setImageProvider,
     setImageModelId,
@@ -269,7 +283,7 @@ export function TokenPlanSettings() {
                 <div className="text-sm font-medium">{t('settings.tokenPlan.capabilities')}</div>
 
                 {/* Tab bar (segmented control) */}
-                <div className="flex gap-0.5 rounded-lg bg-muted/60 p-0.5">
+                <div className="flex flex-wrap gap-0.5 rounded-lg bg-muted/60 p-0.5">
                   {presetModalities(selected).map((m) => {
                     const Icon = MODALITY_ICONS[m];
                     const isActive = activeTab === m;
@@ -320,7 +334,11 @@ export function TokenPlanSettings() {
                 })()}
 
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  {t('settings.tokenPlan.offeredNote')}
+                  {t(
+                    selected.id === 'zaokit'
+                      ? 'settings.tokenPlan.zaokitNote'
+                      : 'settings.tokenPlan.offeredNote',
+                  )}
                 </p>
               </div>
             </div>

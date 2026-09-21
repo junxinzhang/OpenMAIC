@@ -258,6 +258,12 @@ export async function generateTTS(
   const signal = ttsRequestSignal(config.signal);
   try {
     switch (config.providerId) {
+      case 'zaokit-tts':
+        return await generateOpenAITTS(
+          { ...config, baseUrl: config.baseUrl || TTS_PROVIDERS['zaokit-tts'].defaultBaseUrl },
+          text,
+          signal,
+        );
       case 'openai-tts':
         return await generateOpenAITTS(config, text, signal);
 

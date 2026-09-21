@@ -156,6 +156,7 @@ function getASRProviderName(providerId: ASRProviderId, t: (key: string) => strin
 
 // ─── Image/Video provider name helpers ───
 const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
+  'zaokit-image': 'providerZaokit',
   seedream: 'providerSeedream',
   'openai-image': 'providerOpenAIImage',
   'qwen-image': 'providerQwenImage',
@@ -168,6 +169,7 @@ const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
 };
 
 const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
+  'zaokit-image': '/logos/zaokit.png',
   seedream: '/logos/doubao.svg',
   'openai-image': '/logos/openai.svg',
   'qwen-image': '/logos/bailian.svg',
@@ -180,6 +182,7 @@ const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
 };
 
 const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
+  'zaokit-video': 'providerZaokit',
   seedance: 'providerSeedance',
   kling: 'providerKling',
   veo: 'providerVeo',
@@ -190,6 +193,7 @@ const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
 };
 
 const VIDEO_PROVIDER_ICONS: Record<VideoProviderId, string> = {
+  'zaokit-video': '/logos/zaokit.png',
   seedance: '/logos/doubao.svg',
   kling: '/logos/kling.svg',
   veo: '/logos/gemini.svg',

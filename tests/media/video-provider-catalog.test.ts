@@ -6,6 +6,7 @@ import { VIDEO_PROVIDERS, generateVideo, testVideoConnectivity } from '@/lib/med
 const adapterMocks = vi.hoisted(() => {
   const connectivity = () => ({ success: true, message: 'ok' });
   return {
+    'zaokit-video': { generate: vi.fn(), test: vi.fn(connectivity) },
     seedance: { generate: vi.fn(), test: vi.fn(connectivity) },
     kling: { generate: vi.fn(), test: vi.fn(connectivity) },
     veo: { generate: vi.fn(), test: vi.fn(connectivity) },
@@ -15,6 +16,11 @@ const adapterMocks = vi.hoisted(() => {
     'openrouter-video': { generate: vi.fn(), test: vi.fn(connectivity) },
   };
 });
+
+vi.mock('@/lib/media/adapters/zaokit-video-adapter', () => ({
+  generateWithZaokitVideo: adapterMocks['zaokit-video'].generate,
+  testZaokitVideoConnectivity: adapterMocks['zaokit-video'].test,
+}));
 
 vi.mock('@/lib/media/adapters/seedance-adapter', () => ({
   generateWithSeedance: adapterMocks.seedance.generate,

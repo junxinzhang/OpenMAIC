@@ -7,6 +7,7 @@ import { searchWithExa } from './exa';
 import { searchWithMiniMax } from './minimax';
 import { searchWithSearxng } from './searxng';
 import { searchWithTavily } from './tavily';
+import { searchWithZaokit } from './zaokit';
 import type { WebSearchResult } from '@/lib/types/web-search';
 import type { BaiduSubSources, WebSearchProviderId } from './types';
 
@@ -36,6 +37,8 @@ export async function searchWeb(params: {
   const abortOptions = signal ? { signal } : {};
 
   switch (providerId) {
+    case 'zaokit':
+      return searchWithZaokit({ query, apiKey, maxResults, baseUrl, ...abortOptions });
     case 'baidu':
       return searchWithBaidu({
         query,

@@ -36,6 +36,15 @@ import {
 } from './adapters/openrouter-image-adapter';
 
 export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
+  'zaokit-image': {
+    id: 'zaokit-image',
+    name: 'Zaokit',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://api.zaokit.com/v1',
+    icon: '/logos/zaokit.png',
+    models: [{ id: 'gpt-image-2', name: 'GPT Image 2' }],
+    supportedAspectRatios: ['1:1', '16:9', '4:3', '9:16'],
+  },
   seedream: {
     id: 'seedream',
     name: 'Seedream',
@@ -185,6 +194,11 @@ export async function testImageConnectivity(
   switch (config.providerId) {
     case 'seedream':
       return testSeedreamConnectivity(config);
+    case 'zaokit-image':
+      return testOpenAIImageConnectivity({
+        ...config,
+        baseUrl: config.baseUrl || IMAGE_PROVIDERS['zaokit-image'].defaultBaseUrl,
+      });
     case 'openai-image':
       return testOpenAIImageConnectivity(config);
     case 'qwen-image':
@@ -216,6 +230,11 @@ export async function generateImage(
   switch (config.providerId) {
     case 'seedream':
       return generateWithSeedream(config, options);
+    case 'zaokit-image':
+      return generateWithOpenAIImage(
+        { ...config, baseUrl: config.baseUrl || IMAGE_PROVIDERS['zaokit-image'].defaultBaseUrl },
+        options,
+      );
     case 'openai-image':
       return generateWithOpenAIImage(config, options);
     case 'qwen-image':

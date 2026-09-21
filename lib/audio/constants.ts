@@ -117,6 +117,118 @@ export function resolveTTSModelForVoice(
 }
 
 export const TTS_PROVIDERS: Record<BuiltInTTSProviderId, TTSProviderConfig> = {
+  'zaokit-tts': {
+    id: 'zaokit-tts',
+    name: 'Zaokit',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://api.zaokit.com/v1',
+    icon: '/logos/zaokit.png',
+    models: [
+      { id: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS' },
+      { id: 'tts-1', name: 'TTS-1' },
+      { id: 'tts-1-hd', name: 'TTS-1 HD' },
+    ],
+    defaultModelId: 'gpt-4o-mini-tts',
+    voices: [
+      // Recommended voices (best quality)
+      {
+        id: 'marin',
+        name: 'Marin',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceMarin',
+        compatibleModels: ['gpt-4o-mini-tts'],
+      },
+      {
+        id: 'cedar',
+        name: 'Cedar',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceCedar',
+        compatibleModels: ['gpt-4o-mini-tts'],
+      },
+      // Standard voices (alphabetical)
+      {
+        id: 'alloy',
+        name: 'Alloy',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceAlloy',
+      },
+      {
+        id: 'ash',
+        name: 'Ash',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceAsh',
+      },
+      {
+        id: 'ballad',
+        name: 'Ballad',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceBallad',
+      },
+      {
+        id: 'coral',
+        name: 'Coral',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceCoral',
+      },
+      {
+        id: 'echo',
+        name: 'Echo',
+        language: 'en',
+        gender: 'male',
+        description: 'voiceEcho',
+      },
+      {
+        id: 'fable',
+        name: 'Fable',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceFable',
+      },
+      {
+        id: 'nova',
+        name: 'Nova',
+        language: 'en',
+        gender: 'female',
+        description: 'voiceNova',
+      },
+      {
+        id: 'onyx',
+        name: 'Onyx',
+        language: 'en',
+        gender: 'male',
+        description: 'voiceOnyx',
+      },
+      {
+        id: 'sage',
+        name: 'Sage',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceSage',
+      },
+      {
+        id: 'shimmer',
+        name: 'Shimmer',
+        language: 'en',
+        gender: 'female',
+        description: 'voiceShimmer',
+      },
+      {
+        id: 'verse',
+        name: 'Verse',
+        language: 'en',
+        gender: 'neutral',
+        description: 'voiceVerse',
+      },
+    ],
+    supportedFormats: ['mp3', 'opus', 'aac', 'flac'],
+    speedRange: { min: 0.25, max: 4.0, default: 1.0 },
+  },
   'openai-tts': {
     id: 'openai-tts',
     name: 'OpenAI TTS',
@@ -1076,6 +1188,84 @@ export const TTS_PROVIDERS: Record<BuiltInTTSProviderId, TTSProviderConfig> = {
  * Keep in sync with ASRProviderId type definition.
  */
 export const ASR_PROVIDERS: Record<BuiltInASRProviderId, ASRProviderConfig> = {
+  'zaokit-asr': {
+    id: 'zaokit-asr',
+    name: 'Zaokit',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://api.zaokit.com/v1',
+    icon: '/logos/zaokit.png',
+    models: [
+      { id: 'gpt-4o-mini-transcribe', name: 'GPT-4o Mini Transcribe' },
+      { id: 'gpt-4o-transcribe', name: 'GPT-4o Transcribe' },
+      { id: 'whisper-1', name: 'Whisper-1' },
+    ],
+    defaultModelId: 'gpt-4o-mini-transcribe',
+    supportedLanguages: [
+      // OpenAI Whisper supports 58 languages (as of official docs)
+      // Source: https://platform.openai.com/docs/guides/speech-to-text
+      'auto', // Auto-detect
+      // Hot languages (commonly used)
+      'zh', // Chinese
+      'en', // English
+      'ja', // Japanese
+      'ko', // Korean
+      'es', // Spanish
+      'fr', // French
+      'de', // German
+      'ru', // Russian
+      'ar', // Arabic
+      'pt', // Portuguese
+      'it', // Italian
+      'hi', // Hindi
+      // Other languages (alphabetical)
+      'af', // Afrikaans
+      'hy', // Armenian
+      'az', // Azerbaijani
+      'be', // Belarusian
+      'bs', // Bosnian
+      'bg', // Bulgarian
+      'ca', // Catalan
+      'hr', // Croatian
+      'cs', // Czech
+      'da', // Danish
+      'nl', // Dutch
+      'et', // Estonian
+      'fi', // Finnish
+      'gl', // Galician
+      'el', // Greek
+      'he', // Hebrew
+      'hu', // Hungarian
+      'is', // Icelandic
+      'id', // Indonesian
+      'kn', // Kannada
+      'kk', // Kazakh
+      'lv', // Latvian
+      'lt', // Lithuanian
+      'mk', // Macedonian
+      'ms', // Malay
+      'mr', // Marathi
+      'mi', // Maori
+      'ne', // Nepali
+      'no', // Norwegian
+      'fa', // Persian
+      'pl', // Polish
+      'ro', // Romanian
+      'sr', // Serbian
+      'sk', // Slovak
+      'sl', // Slovenian
+      'sw', // Swahili
+      'sv', // Swedish
+      'tl', // Tagalog
+      'ta', // Tamil
+      'th', // Thai
+      'tr', // Turkish
+      'uk', // Ukrainian
+      'ur', // Urdu
+      'vi', // Vietnamese
+      'cy', // Welsh
+    ],
+    supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
+  },
   'openai-whisper': {
     id: 'openai-whisper',
     name: 'OpenAI Whisper',
@@ -1334,6 +1524,7 @@ export const ASR_PROVIDERS: Record<BuiltInASRProviderId, ASRProviderConfig> = {
  * Used when switching providers or testing a non-active provider.
  */
 export const DEFAULT_TTS_VOICES: Record<BuiltInTTSProviderId, string> = {
+  'zaokit-tts': 'alloy',
   'openai-tts': 'alloy',
   'azure-tts': 'zh-CN-XiaoxiaoNeural',
   'glm-tts': 'tongtong',
@@ -1347,6 +1538,7 @@ export const DEFAULT_TTS_VOICES: Record<BuiltInTTSProviderId, string> = {
 };
 
 export const DEFAULT_TTS_MODELS: Record<BuiltInTTSProviderId, string> = {
+  'zaokit-tts': 'gpt-4o-mini-tts',
   'openai-tts': 'gpt-4o-mini-tts',
   'azure-tts': '',
   'glm-tts': 'glm-tts',

@@ -486,6 +486,7 @@ const getDefaultAudioConfig = () => ({
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
   ttsProvidersConfig: {
+    'zaokit-tts': { apiKey: '', baseUrl: '', enabled: true },
     // Built-in providers default enabled:true — they only ever surface once
     // configured (API key or server-managed), so "enabled" is a user opt-OUT,
     // not the visibility gate. A server-configured provider must not be hidden
@@ -523,6 +524,7 @@ const getDefaultAudioConfig = () => ({
     { apiKey: string; baseUrl: string; modelId?: string; enabled: boolean }
   >,
   asrProvidersConfig: {
+    'zaokit-asr': { apiKey: '', baseUrl: '', enabled: true },
     'openai-whisper': { apiKey: '', baseUrl: '', enabled: true },
     'browser-native': { apiKey: '', baseUrl: '', enabled: true },
     'qwen-asr': { apiKey: '', baseUrl: '', enabled: false },
@@ -536,6 +538,7 @@ const getDefaultAudioConfig = () => ({
 const getDefaultPDFConfig = () => ({
   pdfProviderId: 'unpdf' as PDFProviderId,
   pdfProvidersConfig: {
+    zaokit: { apiKey: '', baseUrl: '', enabled: false },
     unpdf: { apiKey: '', baseUrl: '', enabled: true },
     mineru: { apiKey: '', baseUrl: '', enabled: false },
     'mineru-cloud': { apiKey: '', baseUrl: '', enabled: false },
@@ -600,6 +603,7 @@ const getDefaultVideoConfig = () => ({
 const getDefaultWebSearchConfig = () => ({
   webSearchProviderId: 'tavily' as WebSearchProviderId,
   webSearchProvidersConfig: {
+    zaokit: { apiKey: '', baseUrl: '', enabled: true, requiresApiKey: true },
     tavily: { apiKey: '', baseUrl: '', enabled: true, requiresApiKey: true },
     bocha: { apiKey: '', baseUrl: '', enabled: true, requiresApiKey: true },
     brave: {

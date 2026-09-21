@@ -1,7 +1,8 @@
 import type { ProviderId } from '@/lib/types/provider';
 import type { ImageProviderId, VideoProviderId } from '@/lib/media/types';
-import type { TTSProviderId } from '@/lib/audio/types';
+import type { ASRProviderId, TTSProviderId } from '@/lib/audio/types';
 import type { WebSearchProviderId } from '@/lib/web-search/types';
+import type { PDFProviderId } from '@/lib/pdf/types';
 import type {
   TokenPlanModality,
   TokenPlanModalityTarget,
@@ -19,6 +20,10 @@ import type { ModelInfo } from '@/lib/types/provider';
  * Signatures mirror the store actions so they can be passed verbatim.
  */
 export interface TokenPlanActions {
+  setPDFProviderConfig?: (
+    id: PDFProviderId,
+    config: Partial<{ apiKey: string; baseUrl: string; enabled: boolean }>,
+  ) => void;
   setProviderConfig: (id: ProviderId, config: Record<string, unknown>) => void;
   setImageProviderConfig: (
     id: ImageProviderId,
@@ -42,6 +47,10 @@ export interface TokenPlanActions {
   ) => void;
   setTTSProviderConfig: (
     id: TTSProviderId,
+    config: Partial<{ apiKey: string; baseUrl: string; enabled: boolean; modelId: string }>,
+  ) => void;
+  setASRProviderConfig?: (
+    id: ASRProviderId,
     config: Partial<{ apiKey: string; baseUrl: string; enabled: boolean; modelId: string }>,
   ) => void;
   setWebSearchProviderConfig: (
@@ -203,6 +212,23 @@ function applyModality(
       }
       break;
     }
+    case 'pdf':
+      if (!actions.setPDFProviderConfig) throw new Error('PDF settings are unavailable');
+      actions.setPDFProviderConfig(target.providerId as PDFProviderId, {
+        apiKey,
+        baseUrl: target.baseUrl,
+        enabled: true,
+      });
+      break;
+    case 'asr':
+      if (!actions.setASRProviderConfig) throw new Error('ASR settings are unavailable');
+      actions.setASRProviderConfig(target.providerId as ASRProviderId, {
+        apiKey,
+        baseUrl: target.baseUrl,
+        enabled: true,
+        modelId: target.defaultModelId,
+      });
+      break;
     case 'tts':
       actions.setTTSProviderConfig(target.providerId as TTSProviderId, {
         apiKey,
@@ -301,6 +327,22 @@ function removeModality(
         enabled: false,
         customModels: [],
         replaceBuiltInModels: false,
+      });
+      break;
+    case 'pdf':
+      if (!actions.setPDFProviderConfig) throw new Error('PDF settings are unavailable');
+      actions.setPDFProviderConfig(target.providerId as PDFProviderId, {
+        apiKey: '',
+        baseUrl: '',
+        enabled: false,
+      });
+      break;
+    case 'asr':
+      if (!actions.setASRProviderConfig) throw new Error('ASR settings are unavailable');
+      actions.setASRProviderConfig(target.providerId as ASRProviderId, {
+        apiKey: '',
+        baseUrl: '',
+        enabled: false,
       });
       break;
     case 'tts':

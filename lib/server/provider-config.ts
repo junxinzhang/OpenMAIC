@@ -62,6 +62,7 @@ interface ServerConfig {
  */
 export const LLM_ENV_MAP: Record<string, string> = {
   OPENAI: "openai",
+  ZAOKIT: "zaokit",
   AZURE_OPENAI: "azure",
   ATLASCLOUD: "atlascloud",
   ANTHROPIC: "anthropic",
@@ -86,6 +87,7 @@ export const LLM_ENV_MAP: Record<string, string> = {
 
 const TTS_ENV_MAP: Record<string, string> = {
   TTS_OPENAI: "openai-tts",
+  TTS_ZAOKIT: "zaokit-tts",
   TTS_AZURE: "azure-tts",
   TTS_GLM: "glm-tts",
   TTS_QWEN: "qwen-tts",
@@ -98,6 +100,7 @@ const TTS_ENV_MAP: Record<string, string> = {
 
 const ASR_ENV_MAP: Record<string, string> = {
   ASR_OPENAI: "openai-whisper",
+  ASR_ZAOKIT: "zaokit-asr",
   ASR_QWEN: "qwen-asr",
   ASR_AZURE: "azure-asr",
   ASR_FUNASR: "funasr-asr",
@@ -106,12 +109,14 @@ const ASR_ENV_MAP: Record<string, string> = {
 
 const PDF_ENV_MAP: Record<string, string> = {
   PDF_UNPDF: "unpdf",
+  PDF_ZAOKIT: "zaokit",
   PDF_MINERU: "mineru",
   PDF_MINERU_CLOUD: "mineru-cloud",
 };
 
 const IMAGE_ENV_MAP: Record<string, string> = {
   IMAGE_OPENAI: "openai-image",
+  IMAGE_ZAOKIT: "zaokit-image",
   IMAGE_SEEDREAM: "seedream",
   IMAGE_QWEN_IMAGE: "qwen-image",
   IMAGE_NANO_BANANA: "nano-banana",
@@ -122,6 +127,7 @@ const IMAGE_ENV_MAP: Record<string, string> = {
 
 const VIDEO_ENV_MAP: Record<string, string> = {
   VIDEO_SEEDANCE: "seedance",
+  VIDEO_ZAOKIT: "zaokit-video",
   VIDEO_KLING: "kling",
   VIDEO_VEO: "veo",
   VIDEO_MINIMAX: "minimax-video",
@@ -131,6 +137,7 @@ const VIDEO_ENV_MAP: Record<string, string> = {
 
 const WEB_SEARCH_ENV_MAP: Record<string, string> = {
   EXA: "exa",
+  WEB_SEARCH_ZAOKIT: "zaokit",
   TAVILY: "tavily",
   BOCHA: "bocha",
   BRAVE: "brave",

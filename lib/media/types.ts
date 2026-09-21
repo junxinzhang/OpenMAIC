@@ -71,6 +71,7 @@
  * Keep in sync with IMAGE_PROVIDERS registry in constants.ts
  */
 export type ImageProviderId =
+  | 'zaokit-image'
   | 'seedream'
   | 'openai-image'
   | 'qwen-image'
@@ -193,6 +194,7 @@ export interface ImageGenerationResult {
  * Keep in sync with VIDEO_PROVIDERS registry in constants.ts
  */
 export type VideoProviderId =
+  | 'zaokit-video'
   | 'seedance'
   | 'kling'
   | 'veo'

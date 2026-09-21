@@ -174,6 +174,11 @@ export async function transcribeAudio(
   }
 
   switch (config.providerId) {
+    case 'zaokit-asr':
+      return await transcribeOpenAIWhisper(
+        { ...config, baseUrl: config.baseUrl || ASR_PROVIDERS['zaokit-asr'].defaultBaseUrl },
+        audioBuffer,
+      );
     case 'openai-whisper':
       return await transcribeOpenAIWhisper(config, audioBuffer);
 

@@ -1710,6 +1710,7 @@
     "imageProvider": "Fournisseur de génération d’images",
     "imageModel": "Modèle de génération d’images",
     "providerSeedream": "Seedream (ByteDance)",
+    "providerZaokit": "Zaokit",
     "providerOpenAIImage": "OpenAI Image",
     "providerQwenImage": "Qwen Image (Alibaba)",
     "providerNanoBanana": "Nano Banana (Gemini)",
@@ -1852,6 +1853,7 @@
       "updateKey": "Mettre à jour la clé",
       "modelsCount": "{{n}} modèles",
       "capabilities": "Capacités proposées",
+      "zaokitNote": "These are connection presets. Available features and models depend on your Zaokit account. Video, document reading, and web search require gateway support; saving settings does not verify access.",
       "offeredNote": "Modèles proposés par ce forfait. Choisissez ceux que vous voulez voir dans la barre de génération : leur disponibilité dépend de votre niveau de forfait, et les modèles non pris en charge produiront une erreur au moment de la génération."
     },
     "skills": {

@@ -47,7 +47,8 @@ export function PDFSettings({ selectedProviderId }: PDFSettingsProps) {
   const hasApiKey = !!providerConfig?.apiKey;
   const hasBaseUrl = !!providerConfig?.baseUrl;
 
-  const isCloud = selectedProviderId === 'mineru-cloud';
+  const isZaokit = selectedProviderId === 'zaokit';
+  const isCloud = selectedProviderId === 'mineru-cloud' || isZaokit;
   const isSelfHosted = selectedProviderId === 'mineru';
   const isAliDocMind = selectedProviderId === 'alidocmind';
   const hasAccessKeys = !!providerConfig?.accessKeyId && !!providerConfig?.accessKeySecret;
@@ -130,7 +131,7 @@ export function PDFSettings({ selectedProviderId }: PDFSettingsProps) {
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
-                      placeholder={t('settings.mineruCloudApiKeyPlaceholder')}
+                      placeholder={isZaokit ? 'sk-...' : t('settings.mineruCloudApiKeyPlaceholder')}
                       value={providerConfig?.apiKey || ''}
                       onChange={(e) =>
                         setPDFProviderConfig(selectedProviderId, { apiKey: e.target.value })
@@ -251,7 +252,13 @@ export function PDFSettings({ selectedProviderId }: PDFSettingsProps) {
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
-                    placeholder={isCloud ? 'https://mineru.net/api/v4' : 'http://localhost:8080'}
+                    placeholder={
+                      isZaokit
+                        ? 'https://api.zaokit.com/v1'
+                        : isCloud
+                          ? 'https://mineru.net/api/v4'
+                          : 'http://localhost:8080'
+                    }
                     value={providerConfig?.baseUrl || ''}
                     onChange={(e) =>
                       setPDFProviderConfig(selectedProviderId, { baseUrl: e.target.value })

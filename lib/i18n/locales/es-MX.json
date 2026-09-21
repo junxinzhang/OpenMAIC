@@ -1710,6 +1710,7 @@
     "imageProvider": "Proveedor de generación de imágenes",
     "imageModel": "Modelo de generación de imágenes",
     "providerSeedream": "Seedream (ByteDance)",
+    "providerZaokit": "Zaokit",
     "providerOpenAIImage": "OpenAI Image",
     "providerQwenImage": "Qwen Image (Alibaba)",
     "providerNanoBanana": "Nano Banana (Gemini)",
@@ -1852,6 +1853,7 @@
       "updateKey": "Actualizar clave",
       "modelsCount": "{{n}} modelos",
       "capabilities": "Capacidades ofrecidas",
+      "zaokitNote": "These are connection presets. Available features and models depend on your Zaokit account. Video, document reading, and web search require gateway support; saving settings does not verify access.",
       "offeredNote": "Modelos que ofrece este plan. Elige los que quieras en la barra de generación — la disponibilidad depende del nivel de tu plan, y los modelos no compatibles darán error al momento de generar."
     },
     "skills": {

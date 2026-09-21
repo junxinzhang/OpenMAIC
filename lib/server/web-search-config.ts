@@ -11,6 +11,7 @@ import { WEB_SEARCH_PROVIDERS } from '@/lib/web-search/constants';
 import type { BaiduSubSources, WebSearchProviderId } from '@/lib/web-search/types';
 
 const OFFICIAL_CLIENT_BASE_URLS: Record<WebSearchProviderId, string[]> = {
+  zaokit: ['https://api.zaokit.com', 'https://api.zaokit.com/v1'],
   tavily: ['https://api.tavily.com', 'https://api.tavily.com/search'],
   exa: ['https://api.exa.ai', 'https://api.exa.ai/search'],
   bocha: [

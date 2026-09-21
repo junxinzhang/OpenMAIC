@@ -1,4 +1,6 @@
 import { billingPool, settleCredits, releaseCredits } from '@/lib/billing/store';
+import { withBillingUsage } from '@/lib/billing/usage-context';
+import { isCoworkBilling } from '@/lib/billing/policy';
 import { createLogger } from '@/lib/logger';
 import { generateClassroom, type GenerateClassroomInput } from '@/lib/server/classroom-generation';
 import {
@@ -24,6 +26,7 @@ export function runClassroomGenerationJob(
 
   const jobPromise = (async () => {
     let executionStarted = false;
+    let meteredReservation = false;
     try {
       await markClassroomGenerationJobRunning(jobId);
 
@@ -31,21 +34,27 @@ export function runClassroomGenerationJob(
         const pool = await billingPool();
         const reservation = await pool.query(
           `UPDATE edu_credit_operations SET execution_started_at=COALESCE(execution_started_at,now())
-           WHERE id=$1 AND user_id=$2 AND state='reserved' RETURNING id`,
+           WHERE id=$1 AND user_id=$2 AND state='reserved' RETURNING id,billing_policy`,
           [access.billingOperationId, access.ownerId],
         );
         if (!reservation.rowCount) throw new Error('Classroom credits are not reserved');
+        meteredReservation = reservation.rows[0].billing_policy === 'cowork_v1';
       }
       executionStarted = true;
 
-      const result = await generateClassroom(input, {
-        baseUrl,
-        ownerId: access.ownerId,
-        onProgress: async (progress) => {
-          await updateClassroomGenerationJobProgress(jobId, progress);
-        },
-      });
+      const generate = () =>
+        generateClassroom(input, {
+          baseUrl,
+          ownerId: access.ownerId,
+          onProgress: async (progress) => {
+            await updateClassroomGenerationJobProgress(jobId, progress);
+          },
+        });
 
+      const result =
+        access.ownerId && access.billingOperationId && isCoworkBilling()
+          ? await withBillingUsage(access.ownerId, access.billingOperationId, generate)
+          : await generate();
       await markClassroomGenerationJobSucceeded(jobId, result);
       if (access.ownerId && access.billingOperationId) {
         // A payment-store outage must not turn a completed classroom into a failure.
@@ -59,7 +68,7 @@ export function runClassroomGenerationJob(
       try {
         await markClassroomGenerationJobFailed(jobId, message);
         if (access.ownerId && access.billingOperationId) {
-          await (executionStarted ? settleCredits : releaseCredits)(
+          await (executionStarted && !meteredReservation ? settleCredits : releaseCredits)(
             access.ownerId,
             access.billingOperationId,
           );

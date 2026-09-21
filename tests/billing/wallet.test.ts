@@ -181,7 +181,7 @@ describe('Stripe event accounting', () => {
       'alice',
       'cus_edu',
     ]);
-    await db.query("INSERT INTO edu_billing_contracts VALUES('price_edu',false,1000,'usd',100)");
+    await db.query("INSERT INTO edu_billing_contracts(price_id,livemode,amount,currency,credits) VALUES('price_edu',false,1000,'usd',100)");
     const start = Math.floor(Date.now() / 1000);
     const end = start + 2592000;
     const invoice = {

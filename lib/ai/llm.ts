@@ -9,6 +9,7 @@ import type { GenerateTextResult, JSONValue, LanguageModel, StreamTextResult } f
 import { createLogger } from '@/lib/logger';
 import { PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
+import { prepareMeteredCall, waitForBilling } from '@/lib/billing/usage-context';
 import { getModelMetadataKey } from './model-metadata';
 import { getCanonicalModelId } from './model-aliases';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
@@ -337,7 +338,9 @@ export async function callLLM<T extends GenerateTextParams>(
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const metered = prepareMeteredCall(buildUsageMeta(params, source).modelId);
     try {
+      await metered?.ready;
       // Resolve effective thinking config: per-call > global env > undefined
       const effectiveThinking = thinking ?? getGlobalThinkingConfig();
       const injectedParams = injectProviderOptions(params, effectiveThinking);
@@ -358,6 +361,7 @@ export async function callLLM<T extends GenerateTextParams>(
       // every earlier step would go unaccounted. `totalUsage` aggregates across
       // steps and equals `usage` for a single-step call. Mirrors streamLLM,
       // which already prefers the aggregate.
+      await metered?.finish(result.totalUsage ?? result.usage);
       recordUsageSafe(result.totalUsage ?? result.usage, buildUsageMeta(params, source));
 
       // Validate result (only when retries are configured)
@@ -371,6 +375,7 @@ export async function callLLM<T extends GenerateTextParams>(
 
       return result;
     } catch (error) {
+      await metered?.fail().catch(() => undefined);
       lastError = error;
 
       if (attempt < maxAttempts) {
@@ -406,12 +411,15 @@ export function streamLLM<T extends StreamTextParams>(
   // Wrap onFinish to capture usage when the stream completes, preserving any
   // caller-supplied onFinish. totalUsage aggregates across steps.
   const usageMeta = buildUsageMeta(params, source);
+  const metered = prepareMeteredCall(usageMeta.modelId);
   const callerOnFinish = (params as Record<string, unknown>).onFinish as
     | ((event: { totalUsage?: unknown; usage?: unknown }) => void | Promise<void>)
     | undefined;
   const wrappedParams = {
     ...params,
+    ...(metered ? { model: waitForBilling(params.model, metered.ready) } : {}),
     onFinish: async (event: { totalUsage?: unknown; usage?: unknown }) => {
+      await metered?.finish(event.totalUsage ?? event.usage);
       recordUsageSafe(event.totalUsage ?? event.usage, usageMeta);
       if (callerOnFinish) await callerOnFinish(event);
     },

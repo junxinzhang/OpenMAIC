@@ -1,8 +1,7 @@
-import { CATALOG_VERSION, isCoworkBilling } from '@/lib/billing/policy';
-import { BillingError } from '@/lib/billing/config';
 import { getRequestUser } from '@/lib/auth/session';
-import { requireBillingOrigin } from '@/lib/billing/config';
-import { createCheckout } from '@/lib/billing/stripe';
+import { requireBillingOrigin, BillingError } from '@/lib/billing/config';
+import { CATALOG_VERSION } from '@/lib/billing/policy';
+import { upgradeSubscription } from '@/lib/billing/upgrade';
 import { billingErrorResponse } from '@/lib/billing/guard';
 export async function POST(req: Request) {
   try {
@@ -10,9 +9,9 @@ export async function POST(req: Request) {
     const user = await getRequestUser(req);
     if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
     const body = await req.json();
-    if (isCoworkBilling() && body.catalogVersion !== CATALOG_VERSION)
+    if (body.catalogVersion !== CATALOG_VERSION)
       throw new BillingError('catalog_changed', '套餐已更新，请刷新后重试', 409);
-    return Response.json(await createCheckout(user.id, user.email, body.plan, body.priceId));
+    return Response.json(await upgradeSubscription(user.id, body.plan, body.priceId));
   } catch (error) {
     return billingErrorResponse(error);
   }

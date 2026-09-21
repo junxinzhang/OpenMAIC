@@ -1,4 +1,6 @@
 import { isBillingEnabled } from '@/lib/billing/config';
+import { isCoworkBilling } from '@/lib/billing/policy';
+import { withBillingUsage } from '@/lib/billing/usage-context';
 import {
   billingPool,
   ensureRunReservation,
@@ -24,6 +26,7 @@ export async function createAgentBilling(ownerId: string, sessionId: string) {
   return {
     async reserve(messageSeq: number) {
       if (!enabled) return;
+      if (isCoworkBilling() && reserved.size) return;
       const operationId = `${prefix}${messageSeq}`;
       if (reserved.has(operationId)) return;
       const state = await ensureRunReservation(userId, operationId, 'agent.message');
@@ -33,7 +36,8 @@ export async function createAgentBilling(ownerId: string, sessionId: string) {
     },
     async markStarted(messageSeq: number) {
       if (!enabled) return;
-      const operationId = `${prefix}${messageSeq}`;
+      const operationId =
+        isCoworkBilling() && reserved.size ? [...reserved][0] : `${prefix}${messageSeq}`;
       const pool = await billingPool();
       const result = await pool.query(
         `UPDATE edu_credit_operations SET execution_started_at=COALESCE(execution_started_at,now())
@@ -42,18 +46,31 @@ export async function createAgentBilling(ownerId: string, sessionId: string) {
       );
       if (!result.rows.length) throw new Error('Paid operation is not reserved');
     },
-    async finish(success: boolean) {
+    async run<T>(work: () => Promise<T>): Promise<T> {
+      const operationId = [...reserved][0];
+      return enabled && isCoworkBilling() && operationId
+        ? withBillingUsage(userId, operationId, work)
+        : work();
+    },
+    async finish(success: boolean, interrupted = false) {
       if (!enabled) return;
       for (const operationId of reserved) {
         const pool = await billingPool();
-        const result = await pool.query<{ execution_started_at: unknown }>(
-          'SELECT execution_started_at FROM edu_credit_operations WHERE id=$1 AND user_id=$2',
+        const result = await pool.query<{ execution_started_at: unknown; billing_policy?: string }>(
+          'SELECT execution_started_at,billing_policy FROM edu_credit_operations WHERE id=$1 AND user_id=$2',
           [operationId, userId],
         );
         // Work already admitted to the provider keeps its fixed task charge;
         // otherwise cancellation could obtain unlimited partial generations.
-        const charge = success || result.rows[0]?.execution_started_at != null;
-        await (charge ? settleCredits : releaseCredits)(userId, operationId);
+        const charge =
+          result.rows[0]?.billing_policy === 'cowork_v1'
+            ? success || interrupted
+            : success || result.rows[0]?.execution_started_at != null;
+        if (charge) {
+          if (interrupted && isCoworkBilling())
+            await settleCredits(userId, operationId, 'interrupted');
+          else await settleCredits(userId, operationId);
+        } else await releaseCredits(userId, operationId);
         reserved.delete(operationId);
       }
     },

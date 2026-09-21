@@ -1,3 +1,4 @@
+import { BillingError } from '@/lib/billing/config';
 import { APICallError, RetryError } from 'ai';
 import { apiError } from '@/lib/server/api-response';
 
@@ -61,6 +62,16 @@ function messageForStatus(status: number): string {
  * exposing provider response bodies, URLs, or credential-adjacent details.
  */
 export function llmApiError(error: unknown) {
+  if (error instanceof BillingError) {
+    const response = apiError(
+      error.status === 429 ? 'RATE_LIMITED' : 'INVALID_REQUEST',
+      error.status,
+      error.message,
+    );
+    response.headers.set('Cache-Control', 'private, no-store');
+    if (error.status === 429) response.headers.set('Retry-After', '30');
+    return response;
+  }
   const status = statusFromError(error);
   if (status === undefined) {
     return apiError('INTERNAL_ERROR', 500, 'Scene generation failed. Please try again.');

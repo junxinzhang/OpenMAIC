@@ -26,6 +26,8 @@ const MODELS_WITHOUT_CONFIGURABLE_THINKING = new Set<string>([
   // TokenDance serves many vendors' models behind one OpenAI-compatible
   // gateway; per-model thinking parameters are left at the model default until
   // their pass-through on the gateway is verified.
+  // Zaokit gateway reasoning controls remain provider defaults until verified.
+  'zaokit:gpt-6-astra',
   'tokendance:deepseek-v4.1-flash',
   'tokendance:deepseek-v4-pro',
   'tokendance:glm-5.3',

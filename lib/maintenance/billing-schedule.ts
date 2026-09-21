@@ -1,3 +1,4 @@
+import { isCoworkBilling } from '@/lib/billing/policy';
 import path from 'node:path';
 import { isAuthEnabled } from '@/lib/auth/config';
 import { isBillingEnabled } from '@/lib/billing/config';
@@ -14,6 +15,19 @@ import { reconcileEduJobs } from './reconcile-jobs';
 
 export async function reconcileTerminalBilling(): Promise<void> {
   const pool = await billingPool();
+  if (isCoworkBilling()) {
+    const completed = await pool.query(
+      "SELECT id,user_id,execution_outcome FROM edu_credit_operations WHERE billing_policy='cowork_v1' AND state='reserved' AND execution_outcome IS NOT NULL ORDER BY created_at LIMIT 1000",
+    );
+    for (const op of completed.rows) {
+      try {
+        const { finishCoworkCredits } = await import('@/lib/billing/cowork-store');
+        await finishCoworkCredits(op.user_id, op.id, op.execution_outcome);
+      } catch {
+        console.error('[billing-reconciliation] Usage settlement will retry');
+      }
+    }
+  }
   const table = await pool.query("SELECT to_regclass('agent_sessions') AS name");
   if (table.rows[0]?.name) {
     const operations = await pool.query<{ id: string }>(

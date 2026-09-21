@@ -1,9 +1,15 @@
 import Stripe from 'stripe';
-import { isBillingEnabled, billingOrigin, billingPlans, BillingError, billingMode } from './config';
+import {
+  billingConfigured,
+  billingOrigin,
+  billingPlans,
+  BillingError,
+  billingMode,
+} from './config';
 import { billingTransaction, lockBillingUser } from './store';
 
 export function stripeClient() {
-  if (!isBillingEnabled() || !process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET)
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET)
     throw new BillingError('billing_unconfigured', '支付尚未配置，请稍后再试', 503);
   const key = process.env.STRIPE_SECRET_KEY!;
   const mode = process.env.EDU_BILLING_MODE || 'test';
@@ -21,6 +27,7 @@ export async function createCheckout(
   planId: string,
   expectedPriceId: string,
 ) {
+  if (!billingConfigured()) throw new BillingError('billing_unconfigured', '正式订阅尚未开放', 503);
   const stripe = stripeClient();
   const mode = billingMode();
   const plan = billingPlans().find((p) => p.id === planId);
@@ -60,8 +67,8 @@ export async function createCheckout(
         409,
       );
     await db.query(
-      'INSERT INTO edu_billing_contracts(price_id,livemode,amount,currency,credits) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
-      [plan.priceId, mode, plan.amount, plan.currency, plan.credits],
+      'INSERT INTO edu_billing_contracts(price_id,livemode,amount,currency,credits,plan_id) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',
+      [plan.priceId, mode, plan.amount, plan.currency, plan.credits, plan.id],
     );
   });
   const customerId = await billingTransaction(async (db) => {

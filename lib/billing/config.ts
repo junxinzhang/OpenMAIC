@@ -1,3 +1,4 @@
+import { isCoworkBilling, MEDIA_COSTS } from './policy';
 export interface BillingPlan {
   id: string;
   name: string;
@@ -7,7 +8,7 @@ export interface BillingPlan {
   currency: string;
 }
 export function isBillingEnabled() {
-  return process.env.EDU_BILLING_ENABLED === 'true';
+  return process.env.EDU_BILLING_ENABLED === 'true' || process.env.EDU_WALLET_ENABLED === 'true';
 }
 export function billingPlans(): BillingPlan[] {
   const raw = process.env.EDU_BILLING_PLANS;
@@ -39,7 +40,8 @@ export function billingPlans(): BillingPlan[] {
 }
 export function operationCost(action: string) {
   const values = JSON.parse(process.env.EDU_BILLING_ACTION_COSTS || '{}') as Record<string, number>;
-  const cost = values[action] ?? values.default ?? 1;
+  const cost =
+    values[action] ?? values.default ?? (isCoworkBilling() ? MEDIA_COSTS[action] : undefined) ?? 1;
   if (!Number.isSafeInteger(cost) || cost < 1 || cost > 1_000_000)
     throw new Error('Invalid billing action cost');
   return cost;
@@ -51,7 +53,7 @@ export function billingOrigin() {
 }
 export function billingConfigured() {
   return (
-    isBillingEnabled() &&
+    process.env.EDU_BILLING_ENABLED === 'true' &&
     !!process.env.STRIPE_SECRET_KEY &&
     !!process.env.STRIPE_WEBHOOK_SECRET &&
     billingPlans().length > 0

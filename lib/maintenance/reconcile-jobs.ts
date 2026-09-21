@@ -45,14 +45,18 @@ export async function reconcileEduJobs(directory: string, deps: JobReconcileDeps
         continue;
       }
       const operation = await deps.db.query(
-        "SELECT id,execution_started_at FROM edu_credit_operations WHERE id=$1 AND user_id=$2 AND action='course_generate' AND state='reserved'",
+        "SELECT id,execution_started_at,billing_policy FROM edu_credit_operations WHERE id=$1 AND user_id=$2 AND action='course_generate' AND state='reserved'",
         [job.billingOperationId, job.ownerId],
       );
       if (!operation.rows.length) {
         counts.skipped++;
         continue;
       }
-      if (job.status === 'succeeded' || operation.rows[0]?.execution_started_at != null) {
+      if (
+        job.status === 'succeeded' ||
+        (operation.rows[0]?.billing_policy !== 'cowork_v1' &&
+          operation.rows[0]?.execution_started_at != null)
+      ) {
         await deps.settle(job.ownerId, job.billingOperationId);
         counts.classroomSettled++;
       } else {

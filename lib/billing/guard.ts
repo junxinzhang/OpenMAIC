@@ -2,10 +2,26 @@ import { randomUUID } from 'node:crypto';
 import { getRequestUser } from '@/lib/auth/session';
 import { BillingError, isBillingEnabled } from './config';
 import { reserveCredits, releaseCredits, settleCredits } from './store';
+import { withBillingUsage } from './usage-context';
+import { isCoworkBilling } from './policy';
 export { reserveCredits, releaseCredits, settleCredits };
 export function billingErrorResponse(error: unknown) {
   if (error instanceof BillingError)
-    return Response.json({ error: error.code, message: error.message }, { status: error.status });
+    return Response.json(
+      {
+        error: isCoworkBilling() ? error.message : error.code,
+        code: error.code,
+        message: error.message,
+        upgrade: error.status === 402,
+      },
+      {
+        status: error.status,
+        headers: {
+          'Cache-Control': 'private, no-store',
+          ...(error.status === 429 ? { 'Retry-After': '30' } : {}),
+        },
+      },
+    );
   console.error('[billing] request failed', error instanceof Error ? error.name : 'unknown');
   return Response.json(
     { error: 'billing_unavailable', message: '账户服务暂时不可用，请稍后重试' },
@@ -30,8 +46,12 @@ export async function withBillableRequest(
   } catch (error) {
     return billingErrorResponse(error);
   }
+  let handlerReturned = false;
   try {
-    const response = await handler();
+    const response = await (isCoworkBilling()
+      ? withBillingUsage(user.id, operationId, handler)
+      : handler());
+    handlerReturned = true;
     if (!response.ok) {
       await releaseCredits(user.id, operationId);
       return response;
@@ -71,11 +91,17 @@ export async function withBillableRequest(
               controller.enqueue(item.value);
             }
           } catch (error) {
-            /* Unknown outcome remains reserved for reconciliation. */ controller.error(error);
+            if (isCoworkBilling()) {
+              await reader.cancel(error).catch(() => undefined);
+              await settleCredits(user.id, operationId, 'interrupted').catch(() => undefined);
+            }
+            controller.error(error);
           }
         },
         async cancel(reason) {
-          await reader.cancel(reason); /* Disconnect is not proof of failure. Keep reservation. */
+          await reader.cancel(reason);
+          if (isCoworkBilling())
+            await settleCredits(user.id, operationId, 'interrupted').catch(() => undefined);
         },
       });
       return new Response(stream, { status: response.status, headers: response.headers });
@@ -83,6 +109,8 @@ export async function withBillableRequest(
     await settleCredits(user.id, operationId);
     return response;
   } catch (error) {
+    if (isCoworkBilling() && !handlerReturned)
+      await releaseCredits(user.id, operationId).catch(() => undefined);
     // A thrown handler/settlement error is not proof no upstream work ran.
     // Preserve the reservation until execution evidence can be reconciled.
     return billingErrorResponse(error);

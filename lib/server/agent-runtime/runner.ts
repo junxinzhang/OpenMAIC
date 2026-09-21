@@ -1677,14 +1677,14 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         });
         adoptPreload(preload, true);
         if (preload.messages.length === 0 && plannedStart.durableMessageSeq === undefined) {
-          await agent.prompt(preload.text);
+          await billing.run(() => agent.prompt(preload.text));
         } else {
           const promptMessage = preloadUserMessage(preload.text);
           const deliveredPrompt =
             plannedStart.durableMessageSeq === undefined
               ? promptMessage
               : tagDurableUserMessage(promptMessage, plannedStart.durableMessageSeq);
-          await agent.prompt([deliveredPrompt, ...preload.messages]);
+          await billing.run(() => agent.prompt([deliveredPrompt, ...preload.messages]));
         }
       } else {
         // ── Resume repair ─────────────────────────────────────────────────────
@@ -1732,9 +1732,9 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         });
         adoptPreload(repair, false);
         if (repair.messages.length > 0) {
-          await agent.prompt(repair.messages);
+          await billing.run(() => agent.prompt(repair.messages));
         } else {
-          await agent.continue();
+          await billing.run(() => agent.continue());
         }
       }
 
@@ -1795,7 +1795,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         markLeaseLost();
         return;
       }
-      await billing.finish(status === 'succeeded');
+      await billing.finish(status === 'succeeded', status === 'cancelled');
       if (!settledCancelled) {
         await requeueIfUndelivered('settle');
       }

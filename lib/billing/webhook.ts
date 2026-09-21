@@ -105,9 +105,14 @@ export async function applyStripeEvent(event: Stripe.Event) {
       )
         throw new BillingError('invalid_subscription', 'Subscription binding mismatch');
       const item = sub.items.data[0];
+      // A delayed paid invoice retains the price actually purchased, even after an upgrade.
+      const purchasedPrice =
+        event.type === 'invoice.paid' && invoice
+          ? objectId(invoice.lines.data[0]?.pricing?.price_details?.price)
+          : item.price.id;
       const contract = (
         await db.query('SELECT * FROM edu_billing_contracts WHERE price_id=$1 AND livemode=$2', [
-          item.price.id,
+          purchasedPrice,
           event.livemode,
         ])
       ).rows[0];
@@ -137,6 +142,15 @@ export async function applyStripeEvent(event: Stripe.Event) {
           [sub.id],
         );
       if (event.type === 'invoice.paid' && invoice) {
+        const upgrade =
+          invoice.billing_reason === 'subscription_update'
+            ? (
+                await db.query(
+                  "SELECT * FROM edu_billing_upgrades WHERE user_id=$1 AND subscription_id=$2 AND price_id=$3 AND livemode=$4 AND state IN ('pending','complete') ORDER BY created_at DESC LIMIT 1",
+                  [userId, sub.id, plan.priceId, event.livemode],
+                )
+              ).rows[0]
+            : null;
         const lines = invoice.lines.data.filter(
           (line) => line.pricing?.price_details?.price === plan.priceId,
         );
@@ -149,7 +163,8 @@ export async function applyStripeEvent(event: Stripe.Event) {
           invoice.lines.has_more ||
           lines.length !== 1 ||
           invoice.lines.data.length !== 1 ||
-          !['subscription_create', 'subscription_cycle'].includes(invoice.billing_reason || '')
+          (!['subscription_create', 'subscription_cycle'].includes(invoice.billing_reason || '') &&
+            !upgrade)
         )
           throw new BillingError('invalid_invoice', 'Invoice does not match monthly contract');
         const line = lines[0];
@@ -174,8 +189,13 @@ export async function applyStripeEvent(event: Stripe.Event) {
           ],
         );
         if (inserted.rowCount) {
+          if (upgrade)
+            await db.query(
+              'UPDATE edu_credit_buckets SET expires_at=LEAST(expires_at,now()) WHERE user_id=$1 AND livemode=$2 AND subscription_id IS NOT NULL AND (period_start<to_timestamp($3) OR (period_start=to_timestamp($3) AND credits<$4))',
+              [userId, event.livemode, line.period.start, plan.credits],
+            );
           await db.query(
-            'INSERT INTO edu_credit_buckets(id,user_id,subscription_id,credits,expires_at,livemode,held) VALUES($1,$2,$3,$4,to_timestamp($5),$6,$7)',
+            'INSERT INTO edu_credit_buckets(id,user_id,subscription_id,credits,expires_at,livemode,held,plan_id,period_start) VALUES($1,$2,$3,$4,to_timestamp($5),$6,$7,$8,to_timestamp($9))',
             [
               'invoice:' + invoice.id,
               userId,
@@ -186,6 +206,8 @@ export async function applyStripeEvent(event: Stripe.Event) {
                 : line.period.end,
               event.livemode,
               !!review,
+              contract.plan_id || 'legacy',
+              line.period.start,
             ],
           );
           await db.query(
@@ -193,6 +215,11 @@ export async function applyStripeEvent(event: Stripe.Event) {
             [userId, plan.credits, invoice.id, event.livemode],
           );
         }
+        if (upgrade)
+          await db.query(
+            "UPDATE edu_billing_upgrades SET state='complete',invoice_id=$2 WHERE id=$1",
+            [upgrade.id, invoice.id],
+          );
       }
     }
     await db.query('INSERT INTO edu_billing_events(event_id) VALUES($1)', [event.id]);

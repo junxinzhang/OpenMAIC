@@ -1,3 +1,4 @@
+import { recordBillingMedia } from '@/lib/billing/usage-context';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createLogger } from '@/lib/logger';
@@ -151,7 +152,10 @@ export interface GenerationUsageInput {
  * modality, so the generate routes don't each repeat that construction.
  * Fire-and-forget like `recordUsage`.
  */
-export function recordGenerationUsage(input: GenerationUsageInput): Promise<void> {
+export async function recordGenerationUsage(input: GenerationUsageInput): Promise<void> {
+  await recordBillingMedia(input.kind, input.quantity).catch(() =>
+    log.warn('Billing media usage awaits reconciliation'),
+  );
   const modelId = input.modelId || input.providerId;
   return recordUsage({
     kind: input.kind,

@@ -1,5 +1,6 @@
 import { getAccountPool } from '@/lib/auth/db';
 import { BillingError, operationCost, billingMode } from './config';
+import { isCoworkBilling } from './policy';
 import type { Pool, PoolClient } from 'pg';
 
 export const BILLING_SCHEMA = `
@@ -37,6 +38,23 @@ ALTER TABLE edu_credit_ledger ADD COLUMN IF NOT EXISTS livemode boolean NOT NULL
 ALTER TABLE edu_billing_subscriptions ADD COLUMN IF NOT EXISTS livemode boolean NOT NULL DEFAULT false;
 ALTER TABLE edu_billing_invoices ADD COLUMN IF NOT EXISTS livemode boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS edu_billing_contracts(price_id text NOT NULL,livemode boolean NOT NULL,amount bigint NOT NULL,currency text NOT NULL,credits bigint NOT NULL,PRIMARY KEY(price_id,livemode));
+
+ALTER TABLE edu_credit_buckets ADD COLUMN IF NOT EXISTS plan_id text NOT NULL DEFAULT 'legacy';
+ALTER TABLE edu_credit_buckets ADD COLUMN IF NOT EXISTS period_start timestamptz NOT NULL DEFAULT now();
+ALTER TABLE edu_credit_operations ADD COLUMN IF NOT EXISTS billing_policy text NOT NULL DEFAULT 'fixed';
+ALTER TABLE edu_credit_operations ADD COLUMN IF NOT EXISTS plan_id text NOT NULL DEFAULT 'legacy';
+ALTER TABLE edu_credit_operations ADD COLUMN IF NOT EXISTS execution_outcome text;
+ALTER TABLE edu_credit_operations ADD COLUMN IF NOT EXISTS charged bigint;
+ALTER TABLE edu_credit_operations ADD COLUMN IF NOT EXISTS input_tokens bigint;
+ALTER TABLE edu_credit_operations ADD COLUMN IF NOT EXISTS output_tokens bigint;
+ALTER TABLE edu_billing_contracts ADD COLUMN IF NOT EXISTS plan_id text;
+CREATE TABLE IF NOT EXISTS edu_credit_model_calls(id text PRIMARY KEY,operation_id text NOT NULL REFERENCES edu_credit_operations(id),model text NOT NULL,state text NOT NULL DEFAULT 'pending',input_tokens bigint,output_tokens bigint,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS edu_credit_model_calls_operation ON edu_credit_model_calls(operation_id);
+CREATE TABLE IF NOT EXISTS edu_billing_upgrades(id text PRIMARY KEY,user_id text NOT NULL,subscription_id text NOT NULL,price_id text NOT NULL,previous_price_id text NOT NULL,livemode boolean NOT NULL,state text NOT NULL DEFAULT 'pending',invoice_id text,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS edu_credit_operations_owner_time ON edu_credit_operations(user_id,livemode,created_at);
+CREATE INDEX IF NOT EXISTS edu_credit_operations_active ON edu_credit_operations(livemode) WHERE state='reserved' AND execution_outcome IS NULL AND billing_policy='cowork_v1';
+CREATE INDEX IF NOT EXISTS edu_billing_invoices_owner_time ON edu_billing_invoices(user_id,livemode,created_at);
+CREATE TABLE IF NOT EXISTS edu_credit_media_calls(id text PRIMARY KEY,operation_id text NOT NULL REFERENCES edu_credit_operations(id),action text NOT NULL,credits bigint NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
 `;
 let schemaPromise: Promise<unknown> | undefined;
 export async function billingPool(): Promise<Pool> {
@@ -72,6 +90,8 @@ export async function reserveCredits(
   operationId: string,
   action: string,
 ): Promise<void> {
+  if (isCoworkBilling())
+    return (await import('./cowork-store')).reserveCoworkCredits(userId, operationId, action);
   const cost = operationCost(action);
   if (!operationId || operationId.length > 200)
     throw new BillingError('invalid_operation', '任务标识无效');
@@ -152,7 +172,22 @@ async function finishCreditsInTransaction(
     [userId, operationId, state, state === 'released' ? operation.cost : 0, operation.livemode],
   );
 }
-async function finishCredits(userId: string, operationId: string, state: 'settled' | 'released') {
+async function finishCredits(
+  userId: string,
+  operationId: string,
+  state: 'settled' | 'released',
+  outcome: 'success' | 'interrupted' | 'failed' = state === 'released' ? 'failed' : 'success',
+) {
+  const op = (
+    await (
+      await billingPool()
+    ).query('SELECT billing_policy FROM edu_credit_operations WHERE id=$1 AND user_id=$2', [
+      operationId,
+      userId,
+    ])
+  ).rows[0];
+  if (op?.billing_policy === 'cowork_v1')
+    return (await import('./cowork-store')).finishCoworkCredits(userId, operationId, outcome);
   await billingTransaction((db) => finishCreditsInTransaction(db, userId, operationId, state));
 }
 export async function reconcileAgentReservation(
@@ -160,6 +195,32 @@ export async function reconcileAgentReservation(
 ): Promise<'settled' | 'released' | 'skipped'> {
   const match = /^agent:([^:]+):message:\d+$/.exec(operationId);
   if (!match) return 'skipped';
+  const pool = await billingPool();
+  const recovered = (
+    await pool.query(
+      'SELECT o.user_id,o.billing_policy,o.state,o.execution_outcome,s.status,s.owner_id FROM edu_credit_operations o JOIN agent_sessions s ON s.id=$2 WHERE o.id=$1',
+      [operationId, match[1]],
+    )
+  ).rows[0];
+  if (recovered?.billing_policy === 'cowork_v1') {
+    if (
+      recovered.state !== 'reserved' ||
+      recovered.owner_id !== 'user:' + recovered.user_id ||
+      !['succeeded', 'failed', 'cancelled'].includes(recovered.status)
+    )
+      return 'skipped';
+    const outcome =
+      recovered.execution_outcome ??
+      (recovered.status === 'succeeded'
+        ? 'success'
+        : recovered.status === 'cancelled'
+          ? 'interrupted'
+          : 'failed');
+    await (
+      await import('./cowork-store')
+    ).finishCoworkCredits(recovered.user_id, operationId, outcome);
+    return outcome === 'failed' ? 'released' : 'settled';
+  }
   return billingTransaction(async (db) => {
     const session = (
       await db.query('SELECT owner_id,status FROM agent_sessions WHERE id=$1 FOR UPDATE', [
@@ -186,11 +247,15 @@ export async function reconcileAgentReservation(
     return target;
   });
 }
-export const settleCredits = (userId: string, operationId: string) =>
-  finishCredits(userId, operationId, 'settled');
+export const settleCredits = (
+  userId: string,
+  operationId: string,
+  outcome: 'success' | 'interrupted' = 'success',
+) => finishCredits(userId, operationId, 'settled', outcome);
 export const releaseCredits = (userId: string, operationId: string) =>
   finishCredits(userId, operationId, 'released');
 export async function creditSummary(userId: string) {
+  if (isCoworkBilling()) return (await import('./cowork-store')).coworkSummary(userId);
   const pool = await billingPool();
   const [balance, ledger, subscriptions, invoices, customer] = await Promise.all([
     pool.query(

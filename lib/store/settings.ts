@@ -12,6 +12,7 @@ import { persist } from 'zustand/middleware';
 import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
+import { isRetiredModel, withoutRetiredModels } from '@/lib/ai/retired-models';
 import { findModelById, getCanonicalModelId } from '@/lib/ai/model-aliases';
 import type { ThinkingConfig } from '@/lib/types/provider';
 import { getThinkingConfigKey, supportsConfigurableThinking } from '@/lib/ai/thinking-config';
@@ -449,6 +450,12 @@ function resolveSelectedLLMModel(
   currentModelId: string,
   availableModels: Array<{ id: string }>,
 ): string {
+  availableModels = availableModels.filter((model) => !isRetiredModel(model.id));
+  if (
+    isRetiredModel(currentModelId) &&
+    availableModels.some((model) => model.id === 'gpt-5.6-terra')
+  )
+    return 'gpt-5.6-terra';
   if (availableModels.some((model) => model.id === currentModelId)) return currentModelId;
   const canonicalModelId = getCanonicalModelId(providerId, currentModelId);
   if (
@@ -668,6 +675,13 @@ function hasProviderId(providerMap: Record<string, unknown>, providerId?: string
  * Called during both migrate and merge to cover all rehydration paths.
  */
 function ensureValidProviderSelections(state: Partial<SettingsState>): void {
+  if (state.modelId && isRetiredModel(state.modelId) && state.providerId) {
+    state.modelId = resolveSelectedLLMModel(
+      state.providerId,
+      state.modelId,
+      state.providersConfig?.[state.providerId]?.models || [],
+    );
+  }
   const defaultAudioConfig = getDefaultAudioConfig();
   const defaultPdfConfig = getDefaultPDFConfig();
   const defaultImageConfig = getDefaultImageConfig();
@@ -753,6 +767,7 @@ function ensureBuiltInAudioProviders(state: Partial<SettingsState>): void {
  */
 function ensureBuiltInProviders(state: Partial<SettingsState>): void {
   if (!state.providersConfig) return;
+  state.providersConfig = withoutRetiredModels(state.providersConfig);
   const defaultConfig = getDefaultProvidersConfig();
   Object.keys(PROVIDERS).forEach((pid) => {
     const providerId = pid as ProviderId;
@@ -970,7 +985,17 @@ export const useSettingsStore = create<SettingsState>()(
         ...defaultWebSearchConfig,
 
         // Actions
-        setModel: (providerId, modelId) => set({ providerId, modelId }),
+        setModel: (providerId, modelId) =>
+          set((state) => ({
+            providerId,
+            modelId: isRetiredModel(modelId)
+              ? resolveSelectedLLMModel(
+                  providerId,
+                  modelId,
+                  state.providersConfig[providerId]?.models || [],
+                )
+              : modelId,
+          })),
 
         setThinkingConfig: (providerId, modelId, config) =>
           set((state) => {
@@ -986,13 +1011,13 @@ export const useSettingsStore = create<SettingsState>()(
 
         setProviderConfig: (providerId, config) =>
           set((state) => {
-            const providersConfig = {
+            const providersConfig = withoutRetiredModels({
               ...state.providersConfig,
               [providerId]: {
                 ...state.providersConfig[providerId],
                 ...config,
               },
-            };
+            });
             // Re-resolve through the shared resolver (#580): a single config
             // edit can make the active provider usable (adopt + pick a model),
             // make it INVALID — e.g. the user clears its API key — (fall back
@@ -1016,6 +1041,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         setProvidersConfig: (config) =>
           set((state) => {
+            config = withoutRetiredModels(config);
             // Bulk config replace (delete provider/model, import, reset): same
             // shared resolver as setProviderConfig so the two paths can never
             // diverge — never leave the deleted/invalid provider selected.
@@ -1449,7 +1475,7 @@ export const useSettingsStore = create<SettingsState>()(
 
             set((state) => {
               // Merge LLM providers
-              const newProvidersConfig = { ...state.providersConfig };
+              const newProvidersConfig = withoutRetiredModels(state.providersConfig);
               // First reset all server flags
               for (const pid of Object.keys(newProvidersConfig)) {
                 const key = pid as ProviderId;
@@ -1463,6 +1489,7 @@ export const useSettingsStore = create<SettingsState>()(
               }
               // Set flags for server-configured providers
               for (const [pid, info] of Object.entries(data.providers)) {
+                if (info.models) info.models = info.models.filter((id) => !isRetiredModel(id));
                 const key = pid as ProviderId;
                 if (newProvidersConfig[key]) {
                   const currentModels = newProvidersConfig[key].models;

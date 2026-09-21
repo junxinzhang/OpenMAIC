@@ -118,11 +118,11 @@ describe('thinking config normalization', () => {
   });
 
   it('normalizes OpenAI effort defaults and selected effort values', () => {
-    const thinking = getThinking('openai', 'gpt-5.4');
+    const thinking = getThinking('openai', 'gpt-5.6-terra');
 
     expect(getDefaultThinkingConfig(thinking)).toEqual({
-      mode: 'disabled',
-      effort: 'none',
+      mode: 'enabled',
+      effort: 'medium',
     });
     expect(normalizeThinkingConfig(thinking, { effort: 'high' })).toEqual({
       mode: 'enabled',

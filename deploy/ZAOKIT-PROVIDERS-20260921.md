@@ -28,3 +28,11 @@ Provider request/response handling was tested with controlled responses. No vali
 - Deployed image `zaokit-edu:20260921-retire-gpt54` is healthy. The previous image and configuration are retained; 4 classrooms and 52 scenes remain unchanged, with the same content digest as above.
 - Deployment records and private configuration backup: `/opt/openmaic/backups/20260921-retire-gpt54/`.
 - Disk-pressure recovery removed generated unpacked release inputs and 2.972 GB of unused build cache. Database, data volumes, runtime archives, and rollback images were retained. Available disk space after cleanup was 1.4 GB.
+
+## Zaokit priority follow-up
+
+- Commit `6b3ab244` pins Zaokit first independently of persisted provider order. Applies to all seven settings lists, Token Plan, and provider/model selectors. Existing active selections and credentials are preserved.
+- 96 settings/config checks, TypeScript, and the production build passed. Local and logged-in production browsers verified Zaokit as the first item in all eight settings sections.
+- Production image `zaokit-edu:20260921-priority` is healthy; previous image `zaokit-edu:20260921-retire-gpt54` retained. Classroom counts and content digest remain unchanged.
+- Deployment record: `/opt/openmaic/backups/20260921-priority/`.
+- To limit deployment disk usage, the package was streamed into an isolated image preparation container without an extracted server-side staging directory. Unused build cache was reclaimed. The two prior server-side runtime archive copies were removed after confirming local copies; database/configuration backups and rollback images remain. Disk available after cleanup: 1.6 GB.

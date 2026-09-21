@@ -8,10 +8,12 @@ vi.mock('@/lib/billing/store', () => ({
   settleCredits: calls.settle,
   releaseCredits: calls.release,
 }));
+vi.mock('@/lib/auth/limits', () => ({ consumeLimit: vi.fn() }));
 import { withBillableRequest } from '@/lib/billing/guard';
 afterEach(() => {
   vi.clearAllMocks();
   delete process.env.EDU_BILLING_ENABLED;
+  delete process.env.EDU_BILLING_POLICY;
 });
 describe('billable response lifecycle', () => {
   it('releases an explicit SSE business failure despite HTTP 200', async () => {
@@ -70,5 +72,28 @@ describe('billable response lifecycle', () => {
     );
     expect(response.status).toBe(503);
     expect(handler).not.toHaveBeenCalled();
+  });
+});
+
+describe('non-billable configuration probes', () => {
+  it('does not reserve credits for model lists or provider connectivity checks', async () => {
+    process.env.EDU_BILLING_ENABLED = 'true';
+    process.env.EDU_BILLING_POLICY = 'cowork_v1';
+    for (const path of [
+      'provider/probe-models',
+      'verify-model',
+      'verify-image-provider',
+      'verify-video-provider',
+      'verify-pdf-provider',
+    ]) {
+      const response = await withBillableRequest(
+        new Request('https://edu.example/api/' + path),
+        'model_request',
+        async () => Response.json({ success: true }),
+      );
+      expect(response.status).toBe(200);
+    }
+    expect(calls.reserve).not.toHaveBeenCalled();
+    expect(calls.settle).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getRequestUser } from '@/lib/auth/session';
+import { consumeLimit } from '@/lib/auth/limits';
+import { AuthError } from '@/lib/auth/http';
 import { BillingError, isBillingEnabled } from './config';
 import { reserveCredits, releaseCredits, settleCredits } from './store';
 import { withBillingUsage } from './usage-context';
@@ -37,6 +39,27 @@ export async function withBillableRequest(
   if (!isBillingEnabled()) return handler();
   const user = await getRequestUser(req);
   if (!user) return Response.json({ error: 'unauthorized', message: '请先登录' }, { status: 401 });
+  // Configuration checks are control-plane probes, not billable generation.
+  // Keep them authenticated and bounded without trapping an allowance for absent usage.
+  const checks = new Set([
+    '/api/provider/probe-models',
+    '/api/verify-model',
+    '/api/verify-image-provider',
+    '/api/verify-video-provider',
+    '/api/verify-pdf-provider',
+  ]);
+  if (isCoworkBilling() && checks.has(new URL(req.url).pathname)) {
+    try {
+      await consumeLimit('edu-config-check:' + user.id, 30, 3600);
+    } catch (error) {
+      return billingErrorResponse(
+        error instanceof AuthError
+          ? new BillingError('verification_rate_limit', error.message, error.status)
+          : error,
+      );
+    }
+    return handler();
+  }
   const key = req.headers.get('idempotency-key');
   if (key && !/^[A-Za-z0-9_.:-]{1,120}$/.test(key))
     return Response.json({ error: 'invalid_idempotency_key' }, { status: 400 });

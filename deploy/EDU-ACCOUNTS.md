@@ -92,5 +92,22 @@ pnpm exec tsx scripts/reconcile-edu-jobs.ts
 5. 商业规则确定后，配置 Edu 正式价格、正式通知和专属订阅管理配置，再开启正式支付。
 6. 保留旧版本回退入口。数据库变更采用新增表与字段，不删除旧课程。
 
-本次没有替换生产容器、修改生产数据库或开放正式收费。开发验收详情见
-`deploy/EDU-VERIFICATION.md`。
+2026-09-20 开发验收阶段没有替换生产版本。2026-09-21 已正式上线账户功能，
+按用户指定邮箱迁移四门旧课程，正式收费保持关闭。具体证据见
+`deploy/EDU-VERIFICATION.md` 的正式上线结果。
+
+## 小内存服务器的构建方式
+
+本次服务器构建曾因资源紧张影响响应，后改用本机编译，再组装 Linux 运行文件。
+在有足够内存的开发机运行生产构建（账户/收费/后台任务开关仅在构建进程中关闭，
+`NEXT_PUBLIC_PERSISTENCE=1`，`NEXT_PUBLIC_PERSISTENCE_TOKEN` 留空）。使用
+`scripts/package-edu-runtime.py` 打包，排除私密环境文件、Google 凭据及运行数据。
+将包解压为独立的 prebuilt 目录，用 `deploy/Dockerfile.prebuilt` 构建，传入
+`--build-context prebuilt=/path/to/prebuilt`。该文件按相同锁定版本重新装配 Linux
+依赖，并检查 Sharp、PostgreSQL 和 Next 运行组件；禁止直接将 Mac 原生组件用于 Linux。
+
+当前候选/正式部署使用原 PostgreSQL 与原资料卷，独立验证库只用于上线前检查。
+生产收费关闭，不配置测试商品为正式商品。
+
+正式运行命令：`docker compose -p zaokit-edu -f /opt/openmaic/compose.accounts.yml up -d`。
+私密运行配置为 `/opt/openmaic/.env.accounts.production`，旧服务与原始备份保留。

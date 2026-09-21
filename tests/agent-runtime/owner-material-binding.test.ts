@@ -20,7 +20,7 @@ import { ensureOwnerMaterialSchema } from '@/lib/persistence/owner-materials';
 const mocks = vi.hoisted(() => ({
   getAgentSessionStore: vi.fn(),
   getServerPersistenceProvider: vi.fn(),
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   scheduleConversationTitle: vi.fn(),
 }));
 
@@ -29,7 +29,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => true,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/skills', () => ({
   listSkills: async () => [],
@@ -83,10 +83,12 @@ async function makeHost() {
   vi.stubEnv('DATABASE_URL', `postgres://binding-${dbCounter}`);
   mocks.getAgentSessionStore.mockResolvedValue(sessionStore);
   mocks.getServerPersistenceProvider.mockResolvedValue({ pool: instance });
-  mocks.resolveRequestOwnerId.mockImplementation((_request: NextRequest, headers: Headers) => {
-    headers.append('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
-    return 'owner-1';
-  });
+  mocks.resolveAuthenticatedRequestOwnerId.mockImplementation(
+    (_request: NextRequest, headers: Headers) => {
+      headers.append('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
+      return 'owner-1';
+    },
+  );
   db = instance;
   return { db: instance, bytes, puts, sessionStore };
 }

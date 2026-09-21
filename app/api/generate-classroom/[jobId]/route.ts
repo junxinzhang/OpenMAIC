@@ -1,3 +1,5 @@
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
 import { type NextRequest } from 'next/server';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import {
@@ -22,7 +24,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
     }
 
     const job = await readClassroomGenerationJob(jobId);
-    if (!job) {
+    const user = isAuthEnabled() ? await getRequestUser(req) : null;
+    if (!job || (isAuthEnabled() && (!user || job.ownerId !== user.id))) {
       return apiError('INVALID_REQUEST', 404, 'Classroom generation job not found');
     }
 

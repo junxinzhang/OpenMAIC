@@ -1,7 +1,9 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { anonymousCookieSecure } from '@/lib/server/agent-runtime/owner';
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 
 /**
@@ -16,6 +18,11 @@ const ANONYMOUS_COOKIE = 'anonymous_id';
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function currentOwnerId(): Promise<string> {
+  if (isAuthEnabled()) {
+    const user = await getRequestUser({ headers: await headers() });
+    if (!user) throw new Error('Authentication required');
+    return `user:${user.id}`;
+  }
   const cookieStore = await cookies();
   const existing = cookieStore.get(ANONYMOUS_COOKIE)?.value;
   if (existing && UUID_V4.test(existing)) return `anon:${existing}`;

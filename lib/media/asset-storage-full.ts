@@ -1,5 +1,7 @@
 'use client';
 
+import { accountStorageName } from '@/lib/auth/client-scope';
+
 /**
  * Whether this browser has been told the asset store has no room for a course.
  *
@@ -53,7 +55,7 @@ function resolveKv(): KVStore | undefined {
     // can turn best-effort device metadata into a rejected promise, and this
     // one is awaited by a generation pass that has already enqueued its tasks.
     if (typeof localStorage === 'undefined') return undefined;
-    return (defaultKv ??= new BrowserKVStore());
+    return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
   } catch {
     return undefined;
   }

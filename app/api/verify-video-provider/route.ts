@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Verify Video Provider API
  *
@@ -31,7 +32,7 @@ import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 
 const log = createLogger('VerifyVideoProvider');
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const providerId = (request.headers.get('x-video-provider')?.trim() ||
       resolveServerVideoProviderId()) as VideoProviderId;
@@ -88,4 +89,8 @@ export async function POST(request: NextRequest) {
     log.error(`Video provider verification failed: ${err}`, err);
     return apiError('INTERNAL_ERROR', 500, `Connectivity test error: ${err}`);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

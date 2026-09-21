@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Verify Image Provider API
  *
@@ -36,7 +37,7 @@ const log = createLogger('VerifyImageProvider');
 // upstream can't tie up the function indefinitely.
 export const maxDuration = 30;
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const providerId = (request.headers.get('x-image-provider')?.trim() ||
       resolveServerImageProviderId()) as ImageProviderId;
@@ -96,4 +97,8 @@ export async function POST(request: NextRequest) {
     log.error(`Image provider verification failed: ${err}`, err);
     return apiError('INTERNAL_ERROR', 500, `Connectivity test error: ${err}`);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

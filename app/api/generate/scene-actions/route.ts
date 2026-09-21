@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Scene Actions Generation API
  *
@@ -34,7 +35,7 @@ const log = createLogger('Scene Actions API');
 
 export const maxDuration = 60;
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let outlineTitle: string | undefined;
   let resolvedModelString: string | undefined;
   try {
@@ -192,4 +193,8 @@ export async function POST(req: NextRequest) {
     );
     return llmApiError(error);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

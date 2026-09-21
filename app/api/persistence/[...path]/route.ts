@@ -1,3 +1,6 @@
+import { withAccountResponsePrivacy } from '@/lib/server/account-response-cache';
+import { isAuthEnabled } from '@/lib/auth/config';
+import { authorizedAssetPrincipal } from '@/lib/persistence/asset-access';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, RequestListener, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
@@ -99,6 +102,8 @@ async function createPersistenceHandler(
     validateScene: validateAppScene,
     validateStage: validateAppStage,
   });
+  // The comments below describe standalone compatibility mode. Account mode
+  // uses the per-owner principal and reference-checked reads in authenticate.
   // The asset posture, precisely.
   //
   // Reading an asset and allocating one are open to any caller this deployment
@@ -149,8 +154,18 @@ async function createPersistenceHandler(
     authenticate: async (request) => {
       if (request.url?.startsWith('/documents')) return { learnerKey: ownerId };
       if (request.url?.startsWith('/assets')) {
+        if (isAuthEnabled()) {
+          const parts = new URL(request.url, 'http://internal').pathname.split('/').filter(Boolean);
+          if ((request.method ?? 'GET') === 'POST' && parts.length === 1) {
+            return { key: ownerId, learnerKey: ownerId };
+          }
+          if (!parts[1]) return undefined;
+          const key = await authorizedAssetPrincipal(pool, decodeURIComponent(parts[1]), ownerId);
+          return key ? { key, learnerKey: ownerId } : undefined;
+        }
         return { key: SHARED_ASSET_PRINCIPAL, learnerKey: ownerId };
       }
+      if (isAuthEnabled()) return { key: ownerId, learnerKey: ownerId };
       return authenticatePersistenceRequest(request);
     },
     authorizeAssets: async (_principal, request) => {
@@ -340,7 +355,7 @@ export async function handlePersistenceRequest(
     log.error(`${request.method} ${path} -> ${response.status} ${code} (requestId=${requestId})`);
   }
   response.headers.set('x-request-id', requestId);
-  return response;
+  return withAccountResponsePrivacy(response);
 }
 
 async function handlePersistenceRequestInner(
@@ -351,7 +366,7 @@ async function handlePersistenceRequestInner(
   if (!connectionString) {
     return jsonError(404, 'PERSISTENCE_NOT_CONFIGURED', 'server persistence not configured');
   }
-  if (!process.env.PERSISTENCE_DEV_TOKEN) {
+  if (!isAuthEnabled() && !process.env.PERSISTENCE_DEV_TOKEN) {
     return jsonError(
       503,
       'PERSISTENCE_DEV_TOKEN_MISSING',

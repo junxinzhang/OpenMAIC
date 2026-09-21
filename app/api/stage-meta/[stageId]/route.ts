@@ -1,3 +1,4 @@
+import { isAuthEnabled } from '@/lib/auth/config';
 /**
  * GET /api/stage-meta/[stageId] — the per-viewer facts a document does not carry
  * (the reference's stage-meta sidecar, ported onto this branch's owner model).
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       const access = await resolveStageAccess(stageId);
 
       // Absent or tombstoned — indistinguishable, deliberately.
-      if (!access) {
+      if (!access || (isAuthEnabled() && access.ownerId !== ownerId && !access.isPublic)) {
         return NextResponse.json({ error: 'not_found' }, { status: 404, headers: responseHeaders });
       }
 

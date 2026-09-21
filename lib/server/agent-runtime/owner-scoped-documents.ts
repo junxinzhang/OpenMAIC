@@ -25,7 +25,8 @@ export type OwnerScopedDocumentStore = DocumentStore<AppScene, AppStage> &
  *
  * This is the exact seam the agent runner uses (`runner.ts`): the document
  * provider is bound to the resolved owner through the stage access layer.
- * Reads are capability-by-id, writes and listings are owner-only, and every
+ * Account-mode reads require ownership or explicit publication; standalone
+ * reads retain capability-by-id. Writes and listings are owner-only, and every
  * operation re-checks `stage_meta` inside its transaction. A browser holding a
  * course id may therefore read it without gaining mutation authority.
  * `withPlainJsonDocumentWrites` keeps the write

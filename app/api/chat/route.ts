@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Stateless Chat API Endpoint
  *
@@ -41,7 +42,7 @@ export const maxDuration = 60;
  *
  * Response: SSE stream of StatelessEvent
  */
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const encoder = new TextEncoder();
   let chatModel: string | undefined;
   let chatMessageCount: number | undefined;
@@ -204,4 +205,8 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : 'Failed to process request',
     );
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

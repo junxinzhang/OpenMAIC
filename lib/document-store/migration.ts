@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import { DSL_VERSION, migrate } from '@openmaic/dsl';
 import { BrowserKVStore, type DocumentStore, type KVStore } from '@openmaic/storage';
 import isEqual from 'lodash/isEqual';
@@ -219,7 +220,7 @@ function resolveKv(deps: DocumentMigrationDeps): KVStore {
   if (deps.kv) return deps.kv;
   if (typeof localStorage === 'undefined')
     throw new Error('Document migration KV requires localStorage (client-only)');
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 function resolveLocks(deps: DocumentMigrationDeps): LockManager | undefined {

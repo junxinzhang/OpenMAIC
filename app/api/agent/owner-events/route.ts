@@ -1,3 +1,4 @@
+import { withAccountResponsePrivacy } from '@/lib/server/account-response-cache';
 /**
  * Durable, sparse SSE tail for the current owner's session summaries.
  * A degraded caught_up is not authoritative: clients should schedule one full
@@ -12,7 +13,7 @@ import type { NextRequest } from 'next/server';
 
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { subscribeAgentEventWakeup } from '@/lib/server/agent-runtime/event-notify-bus';
-import { resolveRequestOwnerId } from '@/lib/server/agent-runtime/owner';
+import { resolveAuthenticatedRequestOwnerId } from '@/lib/server/agent-runtime/owner';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 
 export const runtime = 'nodejs';
@@ -36,7 +37,7 @@ function parseLastEventId(value: string | null): bigint {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
   if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
 
   // Identity belongs to the request, not the URL. EventSource reconnects to
@@ -46,7 +47,8 @@ export async function GET(req: NextRequest) {
   // created under authenticated identities would be unreachable by their own
   // owner.
   const responseHeaders = new Headers();
-  const ownerId = resolveRequestOwnerId(req, responseHeaders);
+  const ownerId = await resolveAuthenticatedRequestOwnerId(req, responseHeaders);
+  if (!ownerId) return Response.json({ error: 'Authentication required' }, { status: 401 });
   const store = await getAgentSessionStore();
 
   const url = new URL(req.url);
@@ -320,4 +322,8 @@ export async function GET(req: NextRequest) {
   responseHeaders.set('Cache-Control', 'no-cache, no-transform');
   responseHeaders.set('Connection', 'keep-alive');
   return new Response(stream, { headers: responseHeaders });
+}
+
+export async function GET(req: NextRequest) {
+  return withAccountResponsePrivacy(await handleGET(req));
 }

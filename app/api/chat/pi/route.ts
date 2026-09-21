@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 import { attachInteractiveState } from '@/lib/chat/pi/interactive-state-evidence';
 /**
  * Pi Director Chat API Endpoint
@@ -41,7 +42,7 @@ const log = createLogger('Pi Chat API');
 
 export const maxDuration = 300;
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   if (!isPiChatEnabled()) {
     return apiError('INVALID_REQUEST', 404, 'Pi chat runtime is disabled');
   }
@@ -316,4 +317,8 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : 'Failed to process request',
     );
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

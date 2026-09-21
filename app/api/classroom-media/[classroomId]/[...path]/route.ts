@@ -1,7 +1,10 @@
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
+import { canReadLegacyClassroom } from '@/lib/server/classroom-access';
 import { promises as fs, createReadStream, type ReadStream } from 'fs';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { CLASSROOMS_DIR, isValidClassroomId } from '@/lib/server/classroom-storage';
+import { CLASSROOMS_DIR, isValidClassroomId, readClassroom } from '@/lib/server/classroom-storage';
 import { parseRangeHeader } from '@/lib/server/http-range';
 import { createLogger } from '@/lib/logger';
 
@@ -21,7 +24,7 @@ const MIME_TYPES: Record<string, string> = {
   '.aac': 'audio/aac',
 };
 
-const CACHE_HEADERS = { 'Cache-Control': 'public, max-age=86400, immutable' } as const;
+const CACHE_HEADERS = { 'Cache-Control': 'private, no-store' } as const;
 
 /** Bridge a fs ReadStream into a web ReadableStream, propagating errors and cancel. */
 function toWebStream(stream: ReadStream): ReadableStream {
@@ -46,6 +49,14 @@ export async function GET(
   // Validate classroomId
   if (!isValidClassroomId(classroomId)) {
     return NextResponse.json({ error: 'Invalid classroom ID' }, { status: 400 });
+  }
+
+  if (isAuthEnabled()) {
+    const classroom = await readClassroom(classroomId);
+    const user = await getRequestUser(req);
+    if (!classroom || !canReadLegacyClassroom(classroom, user?.id)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
   }
 
   // Validate path segments — no traversal

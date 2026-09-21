@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Web Search API
  *
@@ -29,7 +30,7 @@ import { resolveWebSearchRouteBaseUrl } from '@/lib/server/web-search-config';
 
 const log = createLogger('WebSearch');
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let query: string | undefined;
   try {
     const body = await req.json();
@@ -215,4 +216,8 @@ function getWebSearchEnvKey(providerId: WebSearchProviderId): string {
     default:
       return 'TAVILY_API_KEY';
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'web_search', () => handlePOST(req));
 }

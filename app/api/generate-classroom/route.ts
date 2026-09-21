@@ -1,3 +1,8 @@
+import { randomUUID } from 'node:crypto';
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
+import { isBillingEnabled } from '@/lib/billing/config';
+import { reserveCredits, releaseCredits, billingErrorResponse } from '@/lib/billing/guard';
 import { after, type NextRequest } from 'next/server';
 import { nanoid } from 'nanoid';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -28,7 +33,12 @@ function isValidPdfContent(value: unknown): value is PdfContent {
 
 export async function POST(req: NextRequest) {
   let requirementSnippet: string | undefined;
+  let billing: { userId: string; operationId: string } | undefined;
+  let queued = false;
   try {
+    const user = isAuthEnabled() ? await getRequestUser(req) : null;
+    if ((isAuthEnabled() || isBillingEnabled()) && !user)
+      return apiError('INVALID_REQUEST', 401, '请先登录');
     const rawBody = (await req.json()) as Partial<GenerateClassroomInput>;
     requirementSnippet = rawBody.requirement?.substring(0, 60);
     const pdfContent = rawBody.pdfContent;
@@ -67,10 +77,31 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = buildRequestOrigin(req);
     const jobId = nanoid(10);
-    const job = await createClassroomGenerationJob(jobId, body);
+    if (isBillingEnabled() && user) {
+      const key = req.headers.get('idempotency-key');
+      if (key && !/^[A-Za-z0-9_.:-]{1,120}$/.test(key))
+        return apiError('INVALID_REQUEST', 400, 'Invalid idempotency key');
+      const operationId = `classroom:${user.id}:${key || randomUUID()}`;
+      try {
+        await reserveCredits(user.id, operationId, 'course_generate');
+      } catch (error) {
+        return billingErrorResponse(error);
+      }
+      billing = { userId: user.id, operationId };
+    }
+    const job = await createClassroomGenerationJob(jobId, body, {
+      ownerId: user?.id,
+      billingOperationId: billing?.operationId,
+    });
     const pollUrl = `${baseUrl}/api/generate-classroom/${jobId}`;
 
-    after(() => runClassroomGenerationJob(jobId, body, baseUrl));
+    after(() =>
+      runClassroomGenerationJob(jobId, body, baseUrl, {
+        ownerId: user?.id,
+        billingOperationId: billing?.operationId,
+      }),
+    );
+    queued = true;
 
     return apiSuccess(
       {
@@ -84,6 +115,8 @@ export async function POST(req: NextRequest) {
       202,
     );
   } catch (error) {
+    if (billing && !queued)
+      await releaseCredits(billing.userId, billing.operationId).catch(() => undefined);
     log.error(
       `Classroom generation job creation failed [requirement="${requirementSnippet ?? 'unknown'}..."]:`,
       error,

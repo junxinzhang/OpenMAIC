@@ -1,3 +1,6 @@
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
+import { canReadLegacyClassroom } from '@/lib/server/classroom-access';
 import { type NextRequest } from 'next/server';
 import { validateScene } from '@openmaic/dsl';
 import { apiSuccess, apiError, API_ERROR_CODES } from '@/lib/server/api-response';
@@ -24,6 +27,8 @@ export async function POST(request: NextRequest) {
   let stageId: string | undefined;
   let sceneCount: number | undefined;
   try {
+    const user = isAuthEnabled() ? await getRequestUser(request) : null;
+    if (isAuthEnabled() && !user) return apiError(API_ERROR_CODES.INVALID_REQUEST, 401, '请先登录');
     const body = await request.json();
     const { stage, scenes } = body;
     stageId = stage?.id;
@@ -96,7 +101,10 @@ export async function POST(request: NextRequest) {
             scenes: safeScenes.map((scene) => ({ ...scene, stageId: id })),
           },
           baseUrl,
-          { exclusive: true },
+          {
+            exclusive: true,
+            ...(user ? { ownerId: user.id, published: body.published === true } : {}),
+          },
         );
         break;
       } catch (error) {
@@ -145,7 +153,8 @@ export async function GET(request: NextRequest) {
     }
 
     const classroom = await readClassroom(id);
-    if (!classroom) {
+    const user = isAuthEnabled() ? await getRequestUser(request) : null;
+    if (!classroom || !canReadLegacyClassroom(classroom, user?.id)) {
       return apiError(API_ERROR_CODES.INVALID_REQUEST, 404, 'Classroom not found');
     }
 

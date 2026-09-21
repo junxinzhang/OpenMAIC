@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Single TTS Generation API
  *
@@ -36,7 +37,7 @@ const log = createLogger('TTS API');
 
 export const maxDuration = 30;
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let ttsProviderId: string | undefined;
   let ttsVoice: string | undefined;
   let audioId: string | undefined;
@@ -199,4 +200,8 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : String(error),
     );
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'tts_generate', () => handlePOST(req));
 }

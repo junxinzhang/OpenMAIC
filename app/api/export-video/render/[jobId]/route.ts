@@ -1,3 +1,4 @@
+import { ownsRenderJob, reconcileRenderJob } from '@/lib/server/render-account';
 import { type NextRequest } from 'next/server';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { proxyFetch } from '@/lib/server/proxy-fetch';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
 /** Relay a render job's status. Polled by the client while a render runs. */
 export async function GET(req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await context.params;
+  if (!(await ownsRenderJob(req, jobId)))
+    return apiError('INVALID_REQUEST', 404, 'Render job not found');
   const resolved = resolveRenderServiceUrl();
   if ('error' in resolved) {
     return apiError('PROVIDER_DISABLED', 501, 'Render service is not configured');
@@ -26,6 +29,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
       const status = upstream.status === 404 ? 404 : 502;
       return apiError('UPSTREAM_ERROR', status, 'Render job lookup failed');
     }
+    await reconcileRenderJob(jobId, data.status);
     return apiSuccess({ ...data, pollIntervalMs: 3000 });
   } catch (error) {
     log.error(`Failed to poll render job ${jobId}:`, error);
@@ -36,6 +40,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
 /** Cancel a queued/running render job. */
 export async function DELETE(req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await context.params;
+  if (!(await ownsRenderJob(req, jobId)))
+    return apiError('INVALID_REQUEST', 404, 'Render job not found');
   const resolved = resolveRenderServiceUrl();
   if ('error' in resolved) {
     return apiError('PROVIDER_DISABLED', 501, 'Render service is not configured');
@@ -49,6 +55,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ jobI
     if (!upstream.ok && upstream.status !== 404) {
       return apiError('UPSTREAM_ERROR', 502, 'Failed to cancel render job');
     }
+    // Let status polling establish the terminal result; a cancel request can race completion.
     return apiSuccess({ cancelled: true });
   } catch (error) {
     log.error(`Failed to cancel render job ${jobId}:`, error);

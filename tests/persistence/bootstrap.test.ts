@@ -21,6 +21,30 @@ describe('persistence client bootstrap', () => {
     vi.unstubAllGlobals();
   });
 
+  it('uses the verified account identity in real runtime request paths and headers', async () => {
+    vi.stubEnv('NEXT_PUBLIC_PERSISTENCE', '1');
+    vi.stubEnv('NEXT_PUBLIC_PERSISTENCE_TOKEN', '');
+    const sessionStorage = memoryStorage();
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    sessionStorage.setItem('edu.account.scope', id);
+    vi.stubGlobal('window', { sessionStorage });
+    vi.stubGlobal('localStorage', memoryStorage());
+    const fetcher = vi.fn(async () => Response.json([]));
+    vi.stubGlobal('fetch', fetcher);
+    const runtime = await import('@/lib/runtime/store');
+    const { getLearnerKey } = await import('@/lib/runtime/learner-key');
+    const { getPersistenceLearnerKey } = await import('@/lib/persistence/bootstrap');
+    const key = await getLearnerKey();
+    expect(key).toBe(`user:${id}`);
+    expect(await getPersistenceLearnerKey()).toBe(key);
+    await runtime.getRuntimeStore().listSessions('stage-1', key);
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(
+      `/api/persistence/runtime/stages/stage-1/learners/${encodeURIComponent(key)}/sessions`,
+    );
+    expect(new Headers(init.headers).get('x-learner-key')).toBe(key);
+  });
+
   it('leaves all sealed storage seams untouched when the flag is unset', async () => {
     vi.stubEnv('NEXT_PUBLIC_PERSISTENCE', '');
 
@@ -31,6 +55,21 @@ describe('persistence client bootstrap', () => {
     expect(runtime.isRuntimeStorageConfigured()).toBe(false);
     expect(documents.isDocumentStorageConfigured()).toBe(false);
     expect(assets.isAssetPoolStorageConfigured()).toBe(false);
+  });
+
+  it('configures cookie-based persistence without a public development token', async () => {
+    vi.stubEnv('NEXT_PUBLIC_PERSISTENCE', '1');
+    vi.stubEnv('NEXT_PUBLIC_PERSISTENCE_TOKEN', '');
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('localStorage', memoryStorage());
+    const runtime = await import('@/lib/runtime/store');
+    const documents = await import('@/lib/document-store');
+    const assets = await import('@/lib/media/asset-pool-config');
+    const { getPersistenceRequestHeaders } = await import('@/lib/persistence/bootstrap');
+    expect(runtime.isRuntimeStorageConfigured()).toBe(true);
+    expect(documents.isDocumentStorageConfigured()).toBe(true);
+    expect(assets.isAssetPoolStorageConfigured()).toBe(true);
+    expect((await getPersistenceRequestHeaders()).authorization).toBeUndefined();
   });
 
   it('configures the runtime, document and asset HTTP stores together', async () => {

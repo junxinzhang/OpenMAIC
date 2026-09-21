@@ -1,3 +1,4 @@
+import { withAccountResponsePrivacy } from '@/lib/server/account-response-cache';
 /**
  * Agent runtime control plane — the session event stream (SSE).
  *
@@ -37,7 +38,7 @@ import type { NextRequest } from 'next/server';
 import { HOST_AGENT_LIFECYCLE as LIFECYCLE } from '@/lib/agent-runtime/lifecycle';
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { subscribeAgentEventWakeup } from '@/lib/server/agent-runtime/event-notify-bus';
-import { resolveRequestOwnerId } from '@/lib/server/agent-runtime/owner';
+import { resolveAuthenticatedRequestOwnerId } from '@/lib/server/agent-runtime/owner';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 
 export const runtime = 'nodejs';
@@ -59,7 +60,7 @@ const HEARTBEAT_INTERVAL_MS = 25_000;
 /** Same default as `readEventsAfter`. A full page means more backlog remains. */
 const BACKLOG_PAGE = 500;
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAgentRuntimeConfigured()) {
     return new Response('Not found', { status: 404 });
   }
@@ -74,7 +75,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // integration must thread `authenticatedOwnerId` through here, or sessions
   // created under authenticated identities would be unreachable by their own
   // owner.
-  const ownerId = resolveRequestOwnerId(req, responseHeaders);
+  const ownerId = await resolveAuthenticatedRequestOwnerId(req, responseHeaders);
+  if (!ownerId) return Response.json({ error: 'Authentication required' }, { status: 401 });
   const store = await getAgentSessionStore();
   const meta = await store.getSession(id);
   if (!meta) {
@@ -297,4 +299,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   responseHeaders.set('Cache-Control', 'no-cache, no-transform');
   responseHeaders.set('Connection', 'keep-alive');
   return new Response(stream, { headers: responseHeaders });
+}
+
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return withAccountResponsePrivacy(await handleGET(req, context));
 }

@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -16,7 +17,7 @@ const NON_CHAT_PATTERN = /(tts|asr|whisper|embedding|rerank|mineru|image|video|v
  * /models endpoint (with multi-candidate fallback). Returns the lit-up list, or
  * a typed status so the UI can fall back to manual model entry.
  */
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
     const body = await req.json();
     const { baseUrl, apiKey, modelsUrl } = body as {
@@ -64,4 +65,8 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : 'Failed to probe models',
     );
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

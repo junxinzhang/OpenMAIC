@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Image Generation API
  *
@@ -41,7 +42,7 @@ const log = createLogger('ImageGeneration API');
 // (Self-hosted Node servers ignore this value entirely.)
 export const maxDuration = 300;
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = (await request.json()) as ImageGenerationOptions;
 
@@ -129,4 +130,8 @@ export async function POST(request: NextRequest) {
     log.error(`Image generation failed: ${message}`, error);
     return apiError('INTERNAL_ERROR', 500, message);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'image_generate', () => handlePOST(req));
 }

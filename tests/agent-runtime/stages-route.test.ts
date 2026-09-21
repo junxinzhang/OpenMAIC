@@ -7,7 +7,7 @@ import { createFakeDocumentStore } from './_fake-document-store';
 
 const mocks = vi.hoisted(() => ({
   runtimeConfigured: true,
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   fakeStore: null as ReturnType<typeof createFakeDocumentStore> | null,
 }));
 
@@ -15,7 +15,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => mocks.runtimeConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
@@ -49,7 +49,7 @@ function makeDocument(
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeConfigured = true;
-  mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
   mocks.fakeStore = createFakeDocumentStore();
 });
 
@@ -78,21 +78,23 @@ describe('GET /api/stages', () => {
         },
       ],
     });
-    expect(mocks.resolveRequestOwnerId).toHaveBeenCalledOnce();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).toHaveBeenCalledOnce();
   });
 
   it('answers 404 when the agent runtime is not configured', async () => {
     mocks.runtimeConfigured = false;
     const response = await GET(new NextRequest('http://localhost/api/stages'));
     expect(response.status).toBe(404);
-    expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).not.toHaveBeenCalled();
   });
 
   it('rides the owner cookie minted for the request', async () => {
-    mocks.resolveRequestOwnerId.mockImplementationOnce((_req, responseHeaders: Headers) => {
-      responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
-      return 'anon:anon-2';
-    });
+    mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+      (_req, responseHeaders: Headers) => {
+        responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
+        return 'anon:anon-2';
+      },
+    );
     const response = await GET(new NextRequest('http://localhost/api/stages'));
     expect(response.status).toBe(200);
     expect(response.headers.get('set-cookie')).toContain('anonymous_id=anon-2');
@@ -202,7 +204,7 @@ describe('POST /api/stages', () => {
       }),
     );
     expect(response.status).toBe(400);
-    expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).not.toHaveBeenCalled();
   });
 
   it('answers 404 when the agent runtime is not configured', async () => {

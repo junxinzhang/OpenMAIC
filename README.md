@@ -1123,3 +1123,8 @@ The repository bundles workspace packages that are **not** covered by the root M
 - `packages/pptxgenjs` — [MIT](packages/pptxgenjs/package.json) (third-party)
 
 When redistributing the repository as a whole, the terms of each bundled package above apply to that package's files.
+
+
+## Zaokit Edu accounts and billing
+
+Optional Edu account mode adds Google and passwordless email sign-in, private course ownership, Stripe monthly subscriptions, and operation credits. See the [deployment guide](deploy/EDU-ACCOUNTS.md) and [verification record](deploy/EDU-VERIFICATION.md). Live billing is disabled by default; legacy anonymous data is preserved for explicit ownership review.

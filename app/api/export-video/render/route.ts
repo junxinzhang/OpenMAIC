@@ -1,3 +1,9 @@
+import { randomUUID } from 'node:crypto';
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
+import { isBillingEnabled } from '@/lib/billing/config';
+import { reserveCredits, releaseCredits, billingErrorResponse } from '@/lib/billing/guard';
+import { rememberRenderJob } from '@/lib/server/render-account';
 import { type NextRequest } from 'next/server';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { proxyFetch } from '@/lib/server/proxy-fetch';
@@ -27,7 +33,7 @@ const SUBMIT_TIMEOUT_MS = 300_000;
  * `202 { jobId }`. Returns 501 when the service is not configured so the client
  * can degrade to a local ZIP download.
  */
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest, userId?: string) {
   const resolved = resolveRenderServiceUrl();
   if ('error' in resolved) {
     return apiError('PROVIDER_DISABLED', 501, 'Render service is not configured');
@@ -62,7 +68,7 @@ export async function POST(req: NextRequest) {
       duplex: 'half',
       headers: {
         'content-type': contentType,
-        'x-openmaic-client': clientIdentity(req),
+        'x-openmaic-client': userId || clientIdentity(req),
       },
       signal: AbortSignal.timeout(SUBMIT_TIMEOUT_MS),
     } as RequestInit);
@@ -94,4 +100,33 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : String(error),
     );
   }
+}
+
+export async function POST(req: NextRequest): Promise<Response> {
+  const user = isAuthEnabled() ? await getRequestUser(req) : null;
+  if ((isAuthEnabled() || isBillingEnabled()) && !user)
+    return apiError('INVALID_REQUEST', 401, '请先登录');
+  let operationId: string | undefined;
+  if (isBillingEnabled() && user) {
+    const key = req.headers.get('idempotency-key');
+    if (key && !/^[A-Za-z0-9_.:-]{1,120}$/.test(key))
+      return apiError('INVALID_REQUEST', 400, 'Invalid idempotency key');
+    operationId = `render:${user.id}:${key || randomUUID()}`;
+    try {
+      await reserveCredits(user.id, operationId, 'video_render');
+    } catch (error) {
+      return billingErrorResponse(error);
+    }
+  }
+  const response = await handlePOST(req, user?.id);
+  if (!response.ok) {
+    // 5xx may mean the upstream accepted the job but its response was lost.
+    if (user && operationId && response.status < 500) await releaseCredits(user.id, operationId);
+    return response;
+  }
+  const data = await response.clone().json();
+  if (user && typeof data.jobId === 'string')
+    await rememberRenderJob(data.jobId, user.id, operationId);
+  else if (user) return apiError('UPSTREAM_ERROR', 502, 'Render job identity is missing');
+  return response;
 }

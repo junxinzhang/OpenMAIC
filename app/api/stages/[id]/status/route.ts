@@ -1,3 +1,6 @@
+import { withAccountResponsePrivacy } from '@/lib/server/account-response-cache';
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
 /**
  * GET /api/stages/[id]/status
  *
@@ -18,7 +21,7 @@ export const runtime = 'nodejs';
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+async function handleGET(_req: NextRequest, { params }: Params) {
   if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
 
   const { id } = await params;
@@ -28,7 +31,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // Tombstoned and never-existed must be indistinguishable: this endpoint is
     // unauthenticated, so an answer other than plain 404 would let anyone
     // confirm that a given id used to be a real course.
-    if (!access) {
+    const user = isAuthEnabled() ? await getRequestUser(_req) : null;
+    if (
+      !access ||
+      (isAuthEnabled() && !access.isPublic && access.ownerId !== (user ? `user:${user.id}` : null))
+    ) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
@@ -42,4 +49,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
     });
     return NextResponse.json({ error: 'internal_error' }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest, context: Params) {
+  return withAccountResponsePrivacy(await handleGET(req, context));
 }

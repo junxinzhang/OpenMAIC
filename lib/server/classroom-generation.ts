@@ -220,6 +220,7 @@ export async function generateClassroom(
   input: GenerateClassroomInput,
   options: {
     baseUrl: string;
+    ownerId?: string;
     onProgress?: (progress: ClassroomGenerationProgress) => Promise<void> | void;
   },
 ): Promise<GenerateClassroomResult> {
@@ -758,7 +759,11 @@ export async function generateClassroom(
 
     // The id was reserved before media/TTS generation, so the process owns it and
     // this is an ordinary overwrite that replaces the placeholder.
-    persisted = await persistClassroom({ id: stageId, stage, scenes }, options.baseUrl);
+    persisted = await persistClassroom(
+      { id: stageId, stage, scenes },
+      options.baseUrl,
+      options.ownerId ? { ownerId: options.ownerId } : undefined,
+    );
 
     log.info(`Classroom persisted: ${persisted.id}, URL: ${persisted.url}`);
 

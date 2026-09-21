@@ -1,3 +1,4 @@
+import { isAuthEnabled } from '@/lib/auth/config';
 import type { StageMetaRow } from './stage-meta';
 
 export type DocumentAction =
@@ -70,6 +71,7 @@ export async function decideDocumentAccess(
     case 'read': {
       const meta = await readMeta(action.stageId);
       if (!meta) return 'not-found';
+      if (isAuthEnabled() && meta.ownerId !== ownerId && !meta.isPublic) return 'not-found';
       return meta.deletedAt === null ? 'allow' : 'not-found';
     }
     case 'write': {

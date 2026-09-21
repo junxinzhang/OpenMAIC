@@ -1,3 +1,6 @@
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
+import { authorizedAssetPrincipal } from './asset-access';
 /**
  * Server-side resolution of a client-allocated asset id for extraction.
  *
@@ -48,7 +51,15 @@ export async function resolveServerAsset(
   // documented stopgap for this deployment shape — its cost surface is
   // accepted until real per-learner principals land in a later part of the
   // RFC; do not extend it here.
-  const principal = authenticatePersistenceHeaders(headers);
+  let principal = authenticatePersistenceHeaders(headers);
+  if (isAuthEnabled()) {
+    const user = await getRequestUser({ headers });
+    if (!user) return { status: 'unauthenticated' };
+    const provider = await getServerPersistenceProvider(connectionString);
+    const key = await authorizedAssetPrincipal(provider.pool, assetId, `user:${user.id}`);
+    if (!key) return { status: 'missing' };
+    principal = { key, learnerKey: `user:${user.id}` };
+  }
   // The authenticator always supplies a partition key on success, but its type
   // leaves it optional; a keyless principal fails closed as unauthenticated.
   if (!principal?.key) return { status: 'unauthenticated' };

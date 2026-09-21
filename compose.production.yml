@@ -1,15 +1,15 @@
 services:
   openmaic:
-    image: openmaic:20260830-one-click-r5
+    image: ${EDU_IMAGE_TAG:-zaokit-edu:auth-billing}
     build:
       context: .
       args:
         NEXT_PUBLIC_PERSISTENCE: "1"
-        NEXT_PUBLIC_PERSISTENCE_TOKEN: ${PERSISTENCE_DEV_TOKEN}
+        NEXT_PUBLIC_PERSISTENCE_TOKEN: ${NEXT_PUBLIC_PERSISTENCE_TOKEN:-}
     ports:
       - "127.0.0.1:3210:3000"
     env_file:
-      - .env.production
+      - ${EDU_ENV_FILE:-.env.production}
     environment:
       RENDER_SERVICE_URL: ""
     depends_on:
@@ -27,7 +27,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 15s
       timeout: 5s

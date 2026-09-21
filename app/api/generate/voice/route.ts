@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Auto-voice registration API (provider-neutral).
  *
@@ -61,7 +62,7 @@ function childSignal(
   };
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let providerId: string | undefined;
   let voiceId: string | undefined;
   const deadline = new AbortController();
@@ -260,4 +261,8 @@ export async function POST(req: NextRequest) {
     clearTimeout(deadlineTimer);
     req.signal.removeEventListener('abort', abortFromRequest);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'tts_generate', () => handlePOST(req));
 }

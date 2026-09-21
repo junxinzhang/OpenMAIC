@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 /**
  * Client-only PBL event drainer (#869).
  *
@@ -55,7 +56,7 @@ export interface DrainProjectRuntimeArgs {
 }
 
 function getDefaultKv(): KVStore {
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 function watermarkKey(stageId: string, sceneId: string, learnerKey: string): string {

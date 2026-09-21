@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { migrate } from '@openmaic/dsl';
 import type {
@@ -297,7 +298,7 @@ export function mediaFileKey(stageId: string, elementId: string): string {
 
 // ==================== Database Definition ====================
 
-const DATABASE_NAME = 'MAIC-Database';
+const DATABASE_NAME = accountStorageName('MAIC-Database');
 const _DATABASE_VERSION = 17;
 
 /**
@@ -621,7 +622,7 @@ export async function deleteAllDocuments(): Promise<void> {
 /** Remove device-local metadata owned by the document cutover. */
 export async function clearDocumentStoreKeys(): Promise<void> {
   if (typeof localStorage === 'undefined') return;
-  const kv = new BrowserKVStore();
+  const kv = new BrowserKVStore({ namespace: accountStorageName('maic') });
   for (const prefix of ['document-migration:', 'editor-current-scene:']) {
     const keys = await kv.keys(prefix, 'device');
     await Promise.all(keys.map((key) => kv.remove(key, 'device')));
@@ -779,7 +780,7 @@ export async function importDatabase(
     wasDeleted: boolean;
   }> = [];
   const importedCurrentScenes: Array<{ key: string; preImage: unknown | null }> = [];
-  const kv = new BrowserKVStore();
+  const kv = new BrowserKVStore({ namespace: accountStorageName('maic') });
   const { isStageDeleted, markStageDeleted, unmarkStageDeleted } = await import('./deleted-stages');
 
   try {

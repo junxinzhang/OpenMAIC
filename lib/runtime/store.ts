@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import '@/lib/persistence/bootstrap';
 
 /**
@@ -23,7 +24,7 @@ export type { RuntimeStorageOptions } from './config';
 
 // BrowserRuntimeStore's default dbName; passed explicitly below so the probe
 // in deleteStageRuntimeSafely and the store itself can never drift apart.
-const RUNTIME_DB_NAME = 'maic-runtime';
+const RUNTIME_DB_NAME = accountStorageName('maic-runtime');
 
 let store: RuntimeStore | undefined;
 

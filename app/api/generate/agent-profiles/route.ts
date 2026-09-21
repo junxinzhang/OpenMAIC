@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Agent Profiles Generation API
  *
@@ -127,7 +128,7 @@ function stripCodeFences(text: string): string {
   return cleaned.trim();
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let stageName: string | undefined;
   let modelString: string | undefined;
   try {
@@ -365,4 +366,8 @@ Return a JSON object with this exact structure:
     );
     return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : String(error));
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

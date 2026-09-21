@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { validateAppScene, validateAppStage } from '@/lib/document-store/validators';
 import { createOwnerBoundDocumentStore } from '@/lib/persistence/owner-bound-document-store';
 import { StageAccessError } from '@/lib/persistence/stage-meta';
+const authUser = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/auth/session', () => ({ getRequestUser: authUser }));
 
 class PGlitePool {
   constructor(readonly db: PGlite) {}
@@ -76,6 +78,126 @@ describe('reference-fidelity stage access', () => {
   afterEach(async () => {
     await pool.end();
     vi.unstubAllEnvs();
+  });
+
+  it('disables browser and CDN caching on actual account asset and document responses', async () => {
+    vi.stubEnv('EDU_AUTH_ENABLED', 'true');
+    authUser.mockResolvedValue({ id: 'one' });
+    vi.stubEnv('PERSISTENCE_DEV_TOKEN', '');
+    const { getServerPersistenceProvider } = await import('@/lib/persistence/server-provider');
+    const provider = await getServerPersistenceProvider(
+      process.env.DATABASE_URL!,
+      () => pool as never,
+    );
+    const assetId = await provider.assetStore.put(
+      { key: 'user:one' },
+      new Blob(['private-image'], { type: 'image/png' }),
+      { contentType: 'image/png' },
+    );
+    await ownerStore(pool, 'user:one').saveDocument(courseDocument('private-cache-course'));
+    const { handlePersistenceRequest } = await import('@/app/api/persistence/[...path]/route');
+    const asset = await handlePersistenceRequest(
+      new Request(`http://localhost/api/persistence/assets/${assetId}/content`),
+      { poolFactory: () => pool as never },
+    );
+    expect(asset.status).toBe(200);
+    expect(await asset.text()).toBe('private-image');
+    expect(asset.headers.get('cache-control')).toBe('private, no-store, max-age=0');
+    expect(asset.headers.get('cdn-cache-control')).toContain('no-store');
+    const document = await handlePersistenceRequest(
+      new Request('http://localhost/api/persistence/documents/private-cache-course'),
+      { poolFactory: () => pool as never },
+    );
+    expect(document.status).toBe(200);
+    expect(document.headers.get('cache-control')).toContain('no-store');
+    authUser.mockResolvedValue({ id: 'two' });
+    const denied = await handlePersistenceRequest(
+      new Request(`http://localhost/api/persistence/assets/${assetId}/content`),
+      { poolFactory: () => pool as never },
+    );
+    expect(denied.status).not.toBe(200);
+    expect(denied.headers.get('cache-control')).toContain('no-store');
+    expect(await denied.text()).not.toContain('private-image');
+  });
+
+  it('keeps unclaimed shared assets private and rejects foreign asset grafting', async () => {
+    vi.stubEnv('EDU_AUTH_ENABLED', 'true');
+    const { getServerPersistenceProvider } = await import('@/lib/persistence/server-provider');
+    const { authorizedAssetPrincipal } = await import('@/lib/persistence/asset-access');
+    const provider = await getServerPersistenceProvider(
+      process.env.DATABASE_URL!,
+      () => pool as never,
+    );
+    const assetId = await provider.assetStore.put({ key: 'user:one' }, new Blob(['private']), {
+      contentType: 'text/plain',
+    });
+    const oldAssetId = await provider.assetStore.put({ key: 'shared' }, new Blob(['legacy']), {
+      contentType: 'text/plain',
+    });
+    const course = courseDocument('foreign-asset-course');
+    const scene = {
+      id: 'scene-1',
+      stageId: course.stage.id,
+      order: 1,
+      title: 'Image',
+      type: 'slide',
+      createdAt: 1800000000000,
+      updatedAt: 1800000000000,
+      content: {
+        type: 'slide',
+        canvas: {
+          id: 'canvas-1',
+          viewportSize: 1000,
+          viewportRatio: 16 / 9,
+          theme: {
+            backgroundColor: '#fff',
+            themeColors: ['#2563eb'],
+            fontColor: '#111',
+            fontName: 'Inter',
+          },
+          elements: [
+            {
+              id: 'image-1',
+              type: 'image',
+              src: assetId,
+              left: 0,
+              top: 0,
+              width: 100,
+              height: 100,
+            },
+          ],
+        },
+      },
+    };
+    await expect(
+      ownerStore(pool, 'user:two').saveDocument({ ...course, scenes: [scene] } as never),
+    ).rejects.toThrow(StageAccessError);
+    expect(await ownerStore(pool, 'user:two').loadDocument(course.stage.id)).toBeNull();
+    expect(await authorizedAssetPrincipal(pool as never, assetId, 'user:one')).toBe('user:one');
+    expect(await authorizedAssetPrincipal(pool as never, assetId, 'user:two')).toBeNull();
+    expect(await authorizedAssetPrincipal(pool as never, oldAssetId, 'user:two')).toBeNull();
+    expect(await authorizedAssetPrincipal(pool as never, oldAssetId, 'public:visitor')).toBeNull();
+  });
+
+  it('keeps private account courses isolated and allows explicitly published reads', async () => {
+    vi.stubEnv('EDU_AUTH_ENABLED', 'true');
+    const { getServerPersistenceProvider } = await import('@/lib/persistence/server-provider');
+    await getServerPersistenceProvider(process.env.DATABASE_URL!, () => pool as never);
+    const owner = ownerStore(pool, 'user:one');
+    const visitor = ownerStore(pool, 'user:two');
+    const publicVisitor = ownerStore(pool, 'public:visitor');
+    await owner.saveDocument(courseDocument('private-course'));
+    expect(await visitor.loadDocument('private-course')).toBeNull();
+    expect(await publicVisitor.loadDocument('private-course')).toBeNull();
+    expect(await owner.loadDocument('private-course')).not.toBeNull();
+    await pool.query('UPDATE stage_meta SET is_public = true WHERE stage_id = $1', [
+      'private-course',
+    ]);
+    expect(await visitor.loadDocument('private-course')).not.toBeNull();
+    expect(await publicVisitor.loadDocument('private-course')).not.toBeNull();
+    await expect(visitor.saveDocument(courseDocument('private-course', 'hijack'))).rejects.toThrow(
+      StageAccessError,
+    );
   });
 
   it('loads an agent-created stage through the browser path using the same owner cookie', async () => {

@@ -5,7 +5,7 @@ import type { AgentSessionMaterial } from '@openmaic/storage';
 
 const mocks = vi.hoisted(() => ({
   runtimeConfigured: true,
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   resolveOwnedSession: vi.fn(),
   getSessionMaterial: vi.fn(),
 }));
@@ -14,7 +14,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => mocks.runtimeConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/session-materials', async (importOriginal) => {
   const actual =
@@ -56,7 +56,7 @@ function call(id = MATERIAL_ID) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeConfigured = true;
-  mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
   mocks.resolveOwnedSession.mockResolvedValue({ id: SESSION_ID, ownerId: 'owner-1' });
   mocks.getSessionMaterial.mockResolvedValue(material());
 });
@@ -101,10 +101,12 @@ describe('GET /api/materials/[id]', () => {
   });
 
   it('rides the owner cookie on the 404', async () => {
-    mocks.resolveRequestOwnerId.mockImplementationOnce((_req, responseHeaders: Headers) => {
-      responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
-      return 'anon:anon-2';
-    });
+    mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+      (_req, responseHeaders: Headers) => {
+        responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
+        return 'anon:anon-2';
+      },
+    );
     mocks.getSessionMaterial.mockResolvedValue(null);
     const response = await call();
     expect(response.status).toBe(404);

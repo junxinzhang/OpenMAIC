@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 /**
  * Device-scoped playback cursor persistence.
  *
@@ -46,7 +47,7 @@ function resolveKv(kv?: KVStore): KVStore {
   if (typeof window === 'undefined') {
     throw new Error('Playback cursor persistence is client-only');
   }
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 function isPlaybackCursor(value: unknown): value is PlaybackCursor {

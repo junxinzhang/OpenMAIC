@@ -1,3 +1,4 @@
+import { isAuthEnabled } from '@/lib/auth/config';
 import { AssetQuotaExceededError, type AssetStore } from '@openmaic/storage';
 
 import { SHARED_ASSET_PRINCIPAL } from '@/lib/persistence/server-auth';
@@ -100,6 +101,17 @@ export async function storeGeneratedAsset(
   // stage→asset fact is the reference table the document write maintains; this
   // is provenance on the entry itself, for a server-side writer that has no
   // other place to put it.
+  let principal = SHARED_ASSET_PRINCIPAL;
+  if (isAuthEnabled()) {
+    const provider = await getServerPersistenceProvider(process.env.DATABASE_URL ?? '');
+    const result = await provider.pool.query<{ owner_id: string }>(
+      'SELECT owner_id FROM stage_meta WHERE stage_id = $1 AND deleted_at IS NULL',
+      [input.stageId],
+    );
+    if (!result.rows[0]?.owner_id.startsWith('user:'))
+      throw new Error('Asset requires an owned course');
+    principal = result.rows[0].owner_id;
+  }
   const meta = { contentType: input.mimeType, stageId: input.stageId, kind: input.kind };
   // A `Buffer` from a bounded download is a `Uint8Array` over an
   // `ArrayBufferLike`, which `BlobPart` does not admit. This is a view over the
@@ -111,7 +123,7 @@ export async function storeGeneratedAsset(
   );
   try {
     const assetId = await store.put(
-      { key: SHARED_ASSET_PRINCIPAL },
+      { key: principal },
       new Blob([part], { type: input.mimeType }),
       meta,
     );

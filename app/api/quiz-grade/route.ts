@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Quiz Grading API
  *
@@ -25,7 +26,7 @@ interface GradeResponse {
   comment: string;
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let questionSnippet: string | undefined;
   let resolvedPoints: number | undefined;
   try {
@@ -110,4 +111,8 @@ ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${
     );
     return apiError('INTERNAL_ERROR', 500, 'Failed to grade answer');
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

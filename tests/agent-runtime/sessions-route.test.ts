@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   softDeleteSession: vi.fn(),
   bindOwnerMaterialsToSession: vi.fn(),
   listSessionsByOwner: vi.fn(),
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   listSkills: vi.fn(),
   findSkill: vi.fn(),
   inferSkillIdFromPrompt: vi.fn(),
@@ -20,7 +20,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => mocks.runtimeEnabled,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 // The route reads skills off the explicit `skill` param AND the prompt; pin the
 // lookup to a fixed installed set so no user-skill store or skill directory is
@@ -63,7 +63,7 @@ function post(body: unknown, headers?: HeadersInit) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeEnabled = true;
-  mocks.resolveRequestOwnerId.mockImplementation(
+  mocks.resolveAuthenticatedRequestOwnerId.mockImplementation(
     (_request: NextRequest, responseHeaders: Headers) => {
       responseHeaders.append('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
       return 'anon:test';
@@ -255,7 +255,7 @@ describe('agent session collection route', () => {
     const response = await post({ prompt: '  ' });
 
     expect(response.status).toBe(400);
-    expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).not.toHaveBeenCalled();
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
 
@@ -322,7 +322,7 @@ describe('agent session collection route', () => {
     const response = await post({ existingCourse: true, stageId: 'not a valid id!' });
 
     expect(response.status).toBe(400);
-    expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).not.toHaveBeenCalled();
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
 
@@ -330,7 +330,7 @@ describe('agent session collection route', () => {
     const response = await post({ prompt: 'x'.repeat(MAX_SESSION_TEXT_LENGTH + 1) });
 
     expect(response.status).toBe(400);
-    expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).not.toHaveBeenCalled();
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
 
@@ -358,6 +358,6 @@ describe('agent session collection route', () => {
 
     expect((await post({ prompt: 'Build' })).status).toBe(404);
     expect((await GET(new NextRequest('http://localhost/api/agent/sessions'))).status).toBe(404);
-    expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).not.toHaveBeenCalled();
   });
 });

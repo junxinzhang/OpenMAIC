@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Scene Outlines Streaming API (SSE)
  *
@@ -284,7 +285,7 @@ function ensureUniqueOutlineId(outline: SceneOutline, usedIds: Set<string>): Sce
   return { ...outline, id };
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let requirementSnippet: string | undefined;
   let resolvedModelString: string | undefined;
   try {
@@ -713,4 +714,8 @@ export async function POST(req: NextRequest) {
     );
     return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : String(error));
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

@@ -1,3 +1,4 @@
+import { isBillingEnabled } from '@/lib/billing/config';
 import { after } from 'next/server';
 
 import { createLogger } from '@/lib/logger';
@@ -35,6 +36,8 @@ async function runConversationTitleTask(sessionId: string, ownerId: string): Pro
 }
 
 export function scheduleConversationTitle(sessionId: string, ownerId: string): void {
+  // Automatic cosmetic requests must not bypass the paid task admission gate.
+  if (isBillingEnabled()) return;
   try {
     after(() => runConversationTitleTask(sessionId, ownerId));
   } catch (error) {

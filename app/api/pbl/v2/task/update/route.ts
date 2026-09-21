@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * POST /api/pbl/v2/task/update
  *
@@ -45,7 +46,7 @@ interface UpdateRequest {
   microtaskId?: string;
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let body: UpdateRequest;
   try {
     body = (await req.json()) as UpdateRequest;
@@ -159,4 +160,8 @@ export async function POST(req: NextRequest) {
     default:
       return apiError('INVALID_REQUEST', 400, `Unknown action: ${String(body.action)}`);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

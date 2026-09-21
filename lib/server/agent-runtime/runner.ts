@@ -1,3 +1,4 @@
+import { createAgentBilling } from './billing';
 /**
  * Lease-coordinated background execution for durable agent conversations.
  *
@@ -907,6 +908,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
   let criticalWriteError: unknown;
   let entryWritesHealthy = true;
   let terminalFrameEmitted = false;
+  let billing: Awaited<ReturnType<typeof createAgentBilling>> | undefined;
 
   const markLeaseLost = () => {
     leaseLost = true;
@@ -1139,6 +1141,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
   cancelPoll.unref?.();
 
   try {
+    billing = await createAgentBilling(meta.ownerId, id);
     const recovery = await loadEntryHistory();
     const historyMessages = recovery.messages;
     const plan = planResume(historyMessages);
@@ -1233,7 +1236,10 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         resetAttempt: true,
         expectedAttempt: attempt,
       });
-      if (settled) await requeueIfUndelivered('early settle');
+      if (settled) {
+        await billing.finish(true);
+        await requeueIfUndelivered('early settle');
+      }
       return;
     }
 
@@ -1585,6 +1591,8 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
             }
           : followUp;
         const resolved = await resolveFollowUpElementContext(courseResolved);
+        await billing!.reserve(message.seq);
+        await billing!.markStarted(message.seq);
         agent.steer(
           tagDurableUserMessage(
             {
@@ -1629,6 +1637,10 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     messagePoll.unref?.();
 
     try {
+      const billedMessageSeq =
+        plannedStart.kind === 'prompt' ? (plannedStart.durableMessageSeq ?? 0) : deliveredThrough;
+      await billing.reserve(billedMessageSeq);
+      await billing.markStarted(billedMessageSeq);
       if (plannedStart.kind === 'prompt') {
         // A follow-up-driven prompt is already in the event log; here it
         // enters the transcript. Track its exact sequence immediately so the
@@ -1783,6 +1795,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         markLeaseLost();
         return;
       }
+      await billing.finish(status === 'succeeded');
       if (!settledCancelled) {
         await requeueIfUndelivered('settle');
       }
@@ -1812,7 +1825,10 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
           error: message,
           expectedAttempt: attempt,
         });
-        if (settled) await requeueIfUndelivered('run failure');
+        if (settled) {
+          await billing?.finish(false);
+          await requeueIfUndelivered('run failure');
+        }
         log.error(`session ${id} failed`, error);
       }
     } finally {
@@ -1844,7 +1860,10 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
           expectedAttempt: attempt,
         })
         .catch(() => false);
-      if (settled) await requeueIfUndelivered('setup failure');
+      if (settled) {
+        await billing?.finish(false);
+        await requeueIfUndelivered('setup failure');
+      }
     }
     log.error(`session ${id} failed during setup`, error);
   } finally {

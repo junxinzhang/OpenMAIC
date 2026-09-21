@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 /** Device-scoped editor position, separate from the canonical document. */
 import { BrowserKVStore, type KVStore } from '@openmaic/storage';
 
@@ -21,7 +22,7 @@ function resolveKv(kv?: KVStore): KVStore {
   if (kv) return kv;
   if (typeof localStorage === 'undefined')
     throw new Error('Current-scene persistence requires localStorage (client-only)');
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 function isCurrentSceneValue(value: unknown): value is CurrentSceneValue {

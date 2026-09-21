@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   isServerConfiguredProvider,
@@ -437,7 +438,7 @@ async function runExtraction(
   return apiSuccess({ data: resultWithMetadata });
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const logState: ExtractLogState = {};
   // Whether this request took the asset-id (JSON) form. The multipart byte
   // form's observable behavior is frozen; a few JSON-path-only responses use
@@ -656,4 +657,8 @@ export async function POST(req: NextRequest) {
 /** Strip line-breaking control characters from caller-controlled log values. */
 function sanitizeLogValue(value: string): string {
   return value.replaceAll('\r', ' ').replaceAll('\n', ' ');
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'document_extract', () => handlePOST(req));
 }

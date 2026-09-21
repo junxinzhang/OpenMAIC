@@ -6,7 +6,7 @@ import type { OwnerMaterialRecord } from '@/lib/persistence/owner-materials';
 
 const mocks = vi.hoisted(() => ({
   runtimeConfigured: true,
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   resolveOwnedSession: vi.fn(),
   listSessionMaterials: vi.fn(),
   createSourceMaterial: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => mocks.runtimeConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/session-materials', async (importOriginal) => {
   const actual =
@@ -104,7 +104,7 @@ function ownerMaterial(overrides: Partial<OwnerMaterialRecord> = {}): OwnerMater
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeConfigured = true;
-  mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
   mocks.resolveOwnedSession.mockResolvedValue({ id: SESSION_ID, ownerId: 'owner-1' });
   mocks.listSessionMaterials.mockResolvedValue([material()]);
   mocks.registerOwnerMaterial.mockResolvedValue(ownerMaterial());

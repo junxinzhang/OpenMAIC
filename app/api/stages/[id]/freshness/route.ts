@@ -1,3 +1,4 @@
+import { withAccountResponsePrivacy } from '@/lib/server/account-response-cache';
 /**
  * GET /api/stages/[id]/freshness — volatile freshness SSE for one course (the
  * reference's `stages/:id/freshness`, ported onto the owner-bound store).
@@ -25,7 +26,7 @@
 import type { NextRequest } from 'next/server';
 
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
-import { resolveRequestOwnerId } from '@/lib/server/agent-runtime/owner';
+import { resolveAuthenticatedRequestOwnerId } from '@/lib/server/agent-runtime/owner';
 import { getOwnerScopedDocumentStore } from '@/lib/server/agent-runtime/owner-scoped-documents';
 import { ownerNotFound } from '@/lib/server/agent-runtime/route-response';
 
@@ -43,11 +44,12 @@ export const STAGE_FRESHNESS_RETRY_MS = 3_000;
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(req: NextRequest, { params }: Params) {
+async function handleGET(req: NextRequest, { params }: Params) {
   if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
 
   const responseHeaders = new Headers();
-  const ownerId = resolveRequestOwnerId(req, responseHeaders);
+  const ownerId = await resolveAuthenticatedRequestOwnerId(req, responseHeaders);
+  if (!ownerId) return Response.json({ error: 'Authentication required' }, { status: 401 });
   const { id: stageId } = await params;
 
   // Existence-gated, exactly like the manifest route: the owner-bound store
@@ -149,4 +151,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       ...Object.fromEntries(responseHeaders),
     },
   });
+}
+
+export async function GET(req: NextRequest, context: Params) {
+  return withAccountResponsePrivacy(await handleGET(req, context));
 }

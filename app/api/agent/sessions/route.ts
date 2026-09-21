@@ -1,3 +1,5 @@
+import { isAuthEnabled } from '@/lib/auth/config';
+import { probeStageAccess } from '@/lib/server/agent-runtime/curriculum-tools';
 /**
  * Agent runtime control plane for session creation and listing.
  *
@@ -91,6 +93,14 @@ export async function POST(req: NextRequest) {
   }
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
+    if (
+      isAuthEnabled() &&
+      existingCourse &&
+      stageId &&
+      (await probeStageAccess(ownerId, stageId)).kind !== 'owned'
+    ) {
+      return new Response('Not found', { status: 404, headers: responseHeaders });
+    }
     // An EXPLICIT skill — a `?skill=` launch link, not composer UI — is
     // rejected here rather than at claim time: a session created with a typo'd
     // skill would otherwise sit queued and then quietly build an ordinary

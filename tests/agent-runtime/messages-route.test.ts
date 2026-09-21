@@ -14,7 +14,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => true,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: (_request: NextRequest, headers: Headers) => {
+  resolveAuthenticatedRequestOwnerId: (_request: NextRequest, headers: Headers) => {
     headers.append('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
     return 'owner-1';
   },

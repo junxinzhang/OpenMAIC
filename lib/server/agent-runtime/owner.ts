@@ -1,3 +1,6 @@
+import { setAccountResponsePrivacy } from '@/lib/server/account-response-cache';
+import { isAuthEnabled } from '@/lib/auth/config';
+import { getRequestUser } from '@/lib/auth/session';
 import { randomUUID } from 'node:crypto';
 
 const ANONYMOUS_COOKIE = 'anonymous_id';
@@ -54,11 +57,8 @@ function anonymousCookieHeader(id: string): string {
  * — the headers the caller returns to the client — is required: it receives
  * the outgoing Set-Cookie header whenever a new cookie is issued.
  *
- * Current callers (the agent event-stream routes) pass no authenticated
- * owner: for them this slice resolves only the anonymous cookie identity. A
- * future auth integration must thread `authenticatedOwnerId` through those
- * call sites, or sessions created under authenticated identities would be
- * unreachable by their own owner.
+ * This synchronous helper is only the standalone compatibility path. HTTP
+ * callers use resolveAuthenticatedRequestOwnerId below to verify sessions.
  */
 export function resolveRequestOwnerId(
   req: Pick<Request, 'headers'>,
@@ -73,4 +73,26 @@ export function resolveRequestOwnerId(
   const id = randomUUID();
   responseHeaders.append('Set-Cookie', anonymousCookieHeader(id));
   return `anon:${id}`;
+}
+
+/** Resolve a trusted account identity without upgrading legacy anonymous data. */
+export async function resolveAuthenticatedRequestOwnerId(
+  req: Pick<Request, 'headers'> & Partial<Pick<Request, 'url' | 'method'>>,
+  responseHeaders: Headers,
+): Promise<string | null> {
+  if (!isAuthEnabled()) return resolveRequestOwnerId(req, responseHeaders);
+  setAccountResponsePrivacy(responseHeaders);
+  const user = await getRequestUser(req);
+  if (user) return `user:${user.id}`;
+  if ((req.method === 'GET' || req.method === 'HEAD') && req.url) {
+    const path = new URL(req.url).pathname;
+    if (
+      /^\/api\/stage-meta\/[^/]+$/.test(path) ||
+      /^\/api\/stages\/[^/]+(?:\/(?:scenes|manifest|freshness))?$/.test(path) ||
+      /^\/api\/persistence\/(?:documents|assets)\/[^/]+(?:\/.*)?$/.test(path)
+    ) {
+      return 'public:visitor';
+    }
+  }
+  return null;
 }

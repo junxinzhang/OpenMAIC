@@ -130,6 +130,7 @@ const VIDEO_ENV_MAP: Record<string, string> = {
 };
 
 const WEB_SEARCH_ENV_MAP: Record<string, string> = {
+  EXA: "exa",
   TAVILY: "tavily",
   BOCHA: "bocha",
   BRAVE: "brave",

@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import { BrowserKVStore, type KVStore } from '@openmaic/storage';
 
 const STORAGE_GENERATION_KEY = 'document-storage-generation';
@@ -8,7 +9,7 @@ function resolveKv(kv?: KVStore): KVStore {
   if (typeof localStorage === 'undefined') {
     throw new Error('Document storage generation requires localStorage (client-only)');
   }
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 export async function readGeneration(kv?: KVStore): Promise<number> {

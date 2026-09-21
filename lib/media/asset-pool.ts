@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import '@/lib/persistence/bootstrap';
 
 import type { AssetMeta, BinaryBlob } from '@openmaic/dsl';
@@ -15,7 +16,7 @@ import {
 import { bindAssetReplacementChannel, observeAssetReplacements } from './asset-replacement-events';
 import { clearAssetStorageFull } from './asset-storage-full';
 
-const ASSET_POOL_DATABASE_NAME = 'maic-asset-pool';
+const ASSET_POOL_DATABASE_NAME = accountStorageName('maic-asset-pool');
 let pool: AssetPoolStore | undefined;
 let clearing: Promise<void> | undefined;
 

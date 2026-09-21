@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   readOwnerRetirement: vi.fn(),
   readOwnerSessionEventMaxId: vi.fn(),
   readOwnerSessionEventsAfter: vi.fn(),
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   wake: undefined as undefined | (() => void),
   unsubscribeWakeup: vi.fn(),
 }));
@@ -15,7 +15,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => true,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/store', () => ({
   getAgentSessionStore: vi.fn(async () => ({
@@ -64,7 +64,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   mocks.wake = undefined;
-  mocks.resolveRequestOwnerId.mockReturnValue('user:mine');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('user:mine');
   mocks.readOwnerRetirement.mockResolvedValue(null);
   mocks.readOwnerSessionEventMaxId.mockResolvedValue(BigInt(0));
   mocks.readOwnerSessionEventsAfter.mockResolvedValue([]);
@@ -76,21 +76,23 @@ afterEach(() => {
 
 describe('GET owner session events', () => {
   it('preserves an anonymous owner cookie on the SSE response', async () => {
-    mocks.resolveRequestOwnerId.mockImplementationOnce((_request, responseHeaders: Headers) => {
-      responseHeaders.set('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
-      return 'user:mine';
-    });
+    mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+      (_request, responseHeaders: Headers) => {
+        responseHeaders.set('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
+        return 'user:mine';
+      },
+    );
 
     const response = await call();
     const reader = response.body!.getReader();
 
     expect(response.headers.get('set-cookie')).toBe('anonymous_id=test; Path=/; HttpOnly');
-    expect(mocks.resolveRequestOwnerId).toHaveBeenCalledOnce();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).toHaveBeenCalledOnce();
     await reader.cancel();
   });
 
   it('scopes every store read to the resolved request owner', async () => {
-    mocks.resolveRequestOwnerId.mockReturnValue('user:requestor');
+    mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('user:requestor');
     mocks.readOwnerSessionEventMaxId.mockResolvedValueOnce(BigInt(1));
     mocks.readOwnerSessionEventsAfter.mockResolvedValueOnce([
       {
@@ -120,7 +122,7 @@ describe('GET owner session events', () => {
   });
 
   it('an owner with no sessions receives an empty stream scoped to that owner', async () => {
-    mocks.resolveRequestOwnerId.mockReturnValue('user:requestor');
+    mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('user:requestor');
 
     const response = await call();
     const reader = response.body!.getReader();
@@ -493,7 +495,7 @@ describe('GET owner session events', () => {
   });
 
   it('checks retirement only on heartbeat, emits owner_moved, and ends the established stream', async () => {
-    mocks.resolveRequestOwnerId.mockReturnValueOnce('anon:old');
+    mocks.resolveAuthenticatedRequestOwnerId.mockReturnValueOnce('anon:old');
     mocks.readOwnerRetirement.mockResolvedValueOnce('user:new');
 
     const response = await call();
@@ -516,7 +518,7 @@ describe('GET owner session events', () => {
   });
 
   it('a new connection resolves the merged identity and replays its events', async () => {
-    mocks.resolveRequestOwnerId.mockReturnValueOnce('user:new');
+    mocks.resolveAuthenticatedRequestOwnerId.mockReturnValueOnce('user:new');
     mocks.readOwnerSessionEventMaxId.mockResolvedValueOnce(BigInt(9));
     mocks.readOwnerSessionEventsAfter.mockResolvedValueOnce([
       {

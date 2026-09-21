@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import { BrowserKVStore, type KVStore, type RuntimeStore } from '@openmaic/storage';
 import type { RuntimeRecord } from '@openmaic/dsl';
 import { isEqual } from 'lodash';
@@ -44,7 +45,7 @@ export interface HydratePBLProjectResult {
 }
 
 function getDefaultKv(): KVStore {
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 async function withPBLRuntimeTransaction<T>(

@@ -8,7 +8,7 @@ import { FIXED_NOW, makeDocument, makeSlideScene } from './_stage-fixtures';
 
 const mocks = vi.hoisted(() => ({
   runtimeConfigured: true,
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   fakeStore: null as ReturnType<typeof createFakeDocumentStore> | null,
 }));
 
@@ -16,7 +16,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => mocks.runtimeConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
@@ -47,7 +47,7 @@ function jsonInit(method: string, body: unknown): NextInit {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeConfigured = true;
-  mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
   mocks.fakeStore = createFakeDocumentStore();
   mocks.fakeStore.docs.set(
     STAGE_ID,
@@ -217,10 +217,12 @@ describe('PUT /api/stages/[id]', () => {
   });
 
   it('rides the owner cookie on success', async () => {
-    mocks.resolveRequestOwnerId.mockImplementationOnce((_req, responseHeaders: Headers) => {
-      responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
-      return 'anon:anon-2';
-    });
+    mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+      (_req, responseHeaders: Headers) => {
+        responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
+        return 'anon:anon-2';
+      },
+    );
     const response = await call(PUT, jsonInit('PUT', makeDocument(STAGE_ID, 'X')));
     expect(response.status).toBe(200);
     expect(response.headers.get('set-cookie')).toContain('anonymous_id=anon-2');

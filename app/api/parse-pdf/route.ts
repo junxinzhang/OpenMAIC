@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 import { NextRequest } from 'next/server';
 import {
   isServerConfiguredProvider,
@@ -12,7 +13,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 const log = createLogger('Parse PDF');
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let pdfFileName: string | undefined;
   let resolvedProviderId: string | undefined;
   try {
@@ -90,4 +91,8 @@ export async function POST(req: NextRequest) {
     );
     return apiError('PARSE_FAILED', 500, error instanceof Error ? error.message : 'Unknown error');
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'document_extract', () => handlePOST(req));
 }

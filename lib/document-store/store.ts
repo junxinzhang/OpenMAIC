@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 import '@/lib/persistence/bootstrap';
 
 import { BrowserDocumentStore, type DocumentStore } from '@openmaic/storage';
@@ -23,7 +24,7 @@ export type {
   DocumentStoreFactory,
 } from './config';
 
-const DOCUMENT_DB_NAME = 'maic-documents';
+const DOCUMENT_DB_NAME = accountStorageName('maic-documents');
 
 export interface DocumentStoreDeps {
   /** A complete store override takes precedence over browser construction. */

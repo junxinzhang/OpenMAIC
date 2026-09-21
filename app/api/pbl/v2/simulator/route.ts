@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * POST /api/pbl/v2/simulator   (SCENARIO ONLY)
  *
@@ -36,7 +37,7 @@ interface SimulatorRequest {
   phase?: SimulatorPhase;
 }
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let body: SimulatorRequest;
   try {
     body = (await req.json()) as SimulatorRequest;
@@ -71,4 +72,8 @@ export async function POST(req: NextRequest) {
     }),
     { signal: req.signal },
   );
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

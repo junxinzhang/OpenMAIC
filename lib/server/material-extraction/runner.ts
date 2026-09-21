@@ -1,3 +1,4 @@
+import { assertMaterialExtractionFunded } from './billing';
 import { randomUUID } from 'node:crypto';
 
 import type { PgAgentSessionMaterialStore } from '@openmaic/storage/material/pg';
@@ -32,6 +33,7 @@ export async function runNextMaterialExtraction(
     void store.heartbeatExtraction(claim.material.id, workerId);
   }, agentRuntimeConfig.heartbeatIntervalMs);
   try {
+    await assertMaterialExtractionFunded(claim.material.sessionId);
     await execute(claim);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);

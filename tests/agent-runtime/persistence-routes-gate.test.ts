@@ -29,7 +29,7 @@ const MATERIAL_ID = 'mat_00000000000000000000000000';
 const FOLDER_ID = 'folder-1';
 
 const mocks = vi.hoisted(() => ({
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   resolveOwnedSession: vi.fn(),
   listSessionMaterials: vi.fn(),
   createSourceMaterial: vi.fn(),
@@ -46,7 +46,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/persistence/server-provider', () => ({
   getServerPersistenceProvider: async () => ({
@@ -371,7 +371,7 @@ for (const state of STATES) {
       if (state.databaseUrl !== undefined) process.env.DATABASE_URL = state.databaseUrl;
 
       vi.clearAllMocks();
-      mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+      mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
       mocks.resolveOwnedSession.mockResolvedValue({ id: SESSION_ID, ownerId: 'owner-1' });
       mocks.listSessionMaterials.mockResolvedValue([material()]);
       mocks.createSourceMaterial.mockResolvedValue(material());

@@ -46,7 +46,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # ---- Stage 3: Builder ----
-FROM base AS builder
+FROM deps AS builder
 
 ARG ALLOWED_FRAME_ANCESTORS
 ARG NEXT_PUBLIC_PERSISTENCE
@@ -75,8 +75,6 @@ ENV NEXT_PUBLIC_VIDEO_EXPORT_CTA_DESTINATION=$NEXT_PUBLIC_VIDEO_EXPORT_CTA_DESTI
 ENV NEXT_PUBLIC_ENABLE_PPTX_IMPORT=$NEXT_PUBLIC_ENABLE_PPTX_IMPORT
 ENV NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=$NEXT_PUBLIC_PRO_WORKBENCH_ENABLED
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages ./packages
 COPY . .
 
 # Build the workspace packages (rollup + tsc) here, not inside `pnpm install`,

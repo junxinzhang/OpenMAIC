@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Video Generation API
  *
@@ -36,7 +37,7 @@ const log = createLogger('VideoGeneration API');
 
 export const maxDuration = 300;
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = (await request.json()) as VideoGenerationOptions;
 
@@ -127,4 +128,8 @@ export async function POST(request: NextRequest) {
     log.error(`Video generation failed: ${message}`, error);
     return apiError('INTERNAL_ERROR', 500, message);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'video_generate', () => handlePOST(req));
 }

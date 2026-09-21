@@ -1,3 +1,4 @@
+import { isAuthEnabled } from '@/lib/auth/config';
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -69,6 +70,8 @@ function dayKey(createdAt: number): string {
  * day, and by modality. Pure usage — no cost. Optional `?months=YYYY-MM,...`.
  */
 export async function GET(req: NextRequest) {
+  // Legacy logs are deployment-wide and contain no reliable user attribution.
+  if (isAuthEnabled()) return apiError('INVALID_REQUEST', 403, '请在账户页面查看自己的积分记录');
   try {
     const monthsParam = req.nextUrl.searchParams.get('months');
     const months = monthsParam ? monthsParam.split(',').map((s) => s.trim()) : undefined;

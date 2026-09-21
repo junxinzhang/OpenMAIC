@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   readEventsAfterForReplay: vi.fn(),
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   wake: undefined as undefined | (() => void),
   unsubscribeWakeup: vi.fn(),
 }));
@@ -14,7 +14,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => true,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/store', () => ({
   getAgentSessionStore: vi.fn(async () => ({
@@ -76,7 +76,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.wake = undefined;
   mocks.getSession.mockResolvedValue({ id: 'session-1', ownerId: 'user:mine' });
-  mocks.resolveRequestOwnerId.mockReturnValue('user:mine');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('user:mine');
   mocks.readEventsAfterForReplay.mockResolvedValue({ events: [], scanned: 0 });
 });
 
@@ -86,37 +86,41 @@ afterEach(() => {
 
 describe('GET per-session events', () => {
   it('preserves an anonymous owner cookie on the SSE response', async () => {
-    mocks.resolveRequestOwnerId.mockImplementationOnce((_request, responseHeaders: Headers) => {
-      responseHeaders.set('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
-      return 'user:mine';
-    });
+    mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+      (_request, responseHeaders: Headers) => {
+        responseHeaders.set('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
+        return 'user:mine';
+      },
+    );
 
     const response = await call();
     const reader = response.body!.getReader();
 
     expect(response.headers.get('set-cookie')).toBe('anonymous_id=test; Path=/; HttpOnly');
-    expect(mocks.resolveRequestOwnerId).toHaveBeenCalledOnce();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).toHaveBeenCalledOnce();
     await reader.cancel();
   });
 
   it('does not stream a session owned by another identity: 404 and no event-log reads', async () => {
     mocks.getSession.mockResolvedValue({ id: 'session-1', ownerId: 'user:someone-else' });
-    mocks.resolveRequestOwnerId.mockReturnValue('user:mine');
+    mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('user:mine');
 
     const response = await call();
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe('Not found');
-    expect(mocks.resolveRequestOwnerId).toHaveBeenCalledOnce();
+    expect(mocks.resolveAuthenticatedRequestOwnerId).toHaveBeenCalledOnce();
     expect(mocks.readEventsAfterForReplay).not.toHaveBeenCalled();
   });
 
   it('mints the identity cookie on the 404 for a missing and a not-owned session alike', async () => {
     const mint = () => {
-      mocks.resolveRequestOwnerId.mockImplementationOnce((_request, responseHeaders: Headers) => {
-        responseHeaders.set('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
-        return 'user:mine';
-      });
+      mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+        (_request, responseHeaders: Headers) => {
+          responseHeaders.set('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
+          return 'user:mine';
+        },
+      );
     };
 
     mint();

@@ -139,6 +139,8 @@ export interface PersistedClassroomData {
   stage: Stage;
   scenes: Scene[];
   createdAt: string;
+  ownerId?: string;
+  published?: boolean;
   /**
    * Set only on the placeholder written by {@link reserveClassroom} before the
    * slow media/TTS phases. A reserved document is not yet a classroom;
@@ -236,6 +238,8 @@ export interface PersistClassroomOptions {
    * the incumbent's content. Defaults to the legacy overwrite behaviour.
    */
   exclusive?: boolean;
+  ownerId?: string;
+  published?: boolean;
 }
 
 export async function persistClassroom(
@@ -252,6 +256,7 @@ export async function persistClassroom(
     stage: data.stage,
     scenes: data.scenes,
     createdAt: new Date().toISOString(),
+    ...(options.ownerId ? { ownerId: options.ownerId, published: options.published === true } : {}),
   };
 
   const filePath = resolveClassroomFilePath(data.id);

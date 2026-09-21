@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 /**
  * Scene Content Generation API
  *
@@ -56,7 +57,7 @@ const VISION_RESOLUTION_BUDGET_MS = 15_000;
  */
 const MAX_CONSECUTIVE_UNRESOLVABLE_VISION_IMAGES = 3;
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let outlineTitle: string | undefined;
   let resolvedModelString: string | undefined;
   try {
@@ -360,4 +361,8 @@ export async function POST(req: NextRequest) {
     );
     return llmApiError(error);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

@@ -1,3 +1,4 @@
+import { accountLearnerKey, accountStorageName } from '@/lib/auth/client-scope';
 /**
  * Device-anonymous learner identity for the runtime layer (#869).
  *
@@ -83,6 +84,9 @@ export function getLearnerKey(kv?: KVStore): Promise<string> {
   // race-safe through the lock / read-after-write above.
   if (kv) return readOrMint(kv);
 
+  const authenticatedKey = accountLearnerKey();
+  if (authenticatedKey) return Promise.resolve(authenticatedKey);
+
   const configured = configuredInFlight ?? resolveConfiguredLearnerKey();
   if (configured) {
     configuredInFlight ??= configured.catch((error) => {
@@ -93,7 +97,9 @@ export function getLearnerKey(kv?: KVStore): Promise<string> {
   }
   // Concurrent same-bundle callers share one in-flight read/mint. A failure
   // is not cached — a transient storage error must not pin every later call.
-  defaultInFlight ??= readOrMint((defaultKv ??= new BrowserKVStore())).catch((error) => {
+  defaultInFlight ??= readOrMint(
+    (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') })),
+  ).catch((error) => {
     defaultInFlight = undefined;
     throw error;
   });

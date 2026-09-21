@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 import { NextRequest } from 'next/server';
 import { transcribeAudio } from '@/lib/audio/asr-providers';
 import {
@@ -16,7 +17,7 @@ const log = createLogger('Transcription');
 
 export const maxDuration = 60;
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let resolvedProviderId: string | undefined;
   let resolvedModelId: string | undefined;
   try {
@@ -100,4 +101,8 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : 'Unknown error',
     );
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'transcription', () => handlePOST(req));
 }

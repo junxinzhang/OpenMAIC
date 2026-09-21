@@ -1,4 +1,5 @@
 'use client';
+import { accountStorageName } from '@/lib/auth/client-scope';
 
 /**
  * Workbench session store — the browser's fold over a PR1 agent-runtime job's
@@ -567,7 +568,7 @@ export function createInitialSessionState(): WorkbenchSessionState {
  * again like every other one. Written only on a deliberate toggle — the
  * automatic opener must not silently become a preference.
  */
-const panelKey = (sessionId: string) => `workbench.panel.${sessionId}`;
+const panelKey = (sessionId: string) => accountStorageName(`workbench.panel.${sessionId}`);
 
 function readPanelPreference(sessionId: string): Partial<WorkbenchFold> {
   if (typeof window === 'undefined') return {};

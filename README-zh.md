@@ -889,3 +889,10 @@ OpenMAIC/
 - `packages/pptxgenjs` —— [MIT](packages/pptxgenjs/package.json)（第三方）
 
 整体再分发本仓库时，上述子包内文件适用其各自的协议。
+
+
+## Zaokit Edu 账户与订阅
+
+Zaokit Edu 可启用 Google／邮箱登录、独立账户课程、Stripe 月度订阅及积分。
+启用前请阅读[接入与上线说明](deploy/EDU-ACCOUNTS.md)；本次[验证记录](deploy/EDU-VERIFICATION.md)区分了已完成测试和待上线验证的部分。
+正式收费默认关闭；现有匿名资料不会自动认领或删除。

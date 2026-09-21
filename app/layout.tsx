@@ -12,6 +12,9 @@ import { ServerProvidersInit } from '@/components/server-providers-init';
 import { StorageHealthNotice } from '@/components/storage-health-notice';
 import { AccessCodeGuard } from '@/components/access-code-guard';
 import { ProSwapWatcher } from '@/components/workbench/ProSwapWatcher';
+import { isAuthEnabled } from '@/lib/auth/config';
+import Link from 'next/link';
+import { AccountSessionBoundary } from '@/components/auth/account-session-boundary';
 
 // The UI font is loaded from @fontsource's stylesheet rather than next/font,
 // because only the stylesheet carries the per-subset `unicode-range`
@@ -29,10 +32,14 @@ import { ProSwapWatcher } from '@/components/workbench/ProSwapWatcher';
 import '@fontsource-variable/inter';
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC',
+  title: 'Zaokit Edu',
   description:
     'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
 };
+
+// Account mode is deployment configuration, never a build-time decision.
+// In particular, Docker builds must not pre-render an unpartitioned layout.
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
@@ -47,14 +54,24 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <I18nProvider>
-            <ServerProvidersInit />
-            <ProSwapWatcher />
-            <AccessCodeGuard>{children}</AccessCodeGuard>
-            <Toaster position="top-center" />
-            {/* After the Toaster: this one raises a toast on mount when
+            <AccountSessionBoundary enabled={isAuthEnabled()}>
+              <ServerProvidersInit />
+              <ProSwapWatcher />
+              {isAuthEnabled() && (
+                <Link
+                  href="/account"
+                  className="fixed right-4 bottom-4 z-40 rounded-full border bg-background px-4 py-2 text-sm shadow-sm hover:bg-muted"
+                >
+                  账户与积分
+                </Link>
+              )}
+              <AccessCodeGuard>{children}</AccessCodeGuard>
+              <Toaster position="top-center" />
+              {/* After the Toaster: this one raises a toast on mount when
                 persistence is already broken, and a toast raised before its
                 host exists has nowhere to go. */}
-            <StorageHealthNotice />
+              <StorageHealthNotice />
+            </AccountSessionBoundary>
           </I18nProvider>
         </ThemeProvider>
       </body>

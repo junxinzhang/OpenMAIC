@@ -1,3 +1,4 @@
+import { accountStorageName } from '@/lib/auth/client-scope';
 /**
  * App wiring for zustand `persist` over the `@openmaic/storage` `KVStore`.
  *
@@ -470,7 +471,7 @@ function ambientLocalStorage(): Storage | null {
 function resolveKv(deps: KVPersistDeps): KVStore | null {
   if (deps.kv) return deps.kv;
   if (!ambientLocalStorage()) return null;
-  return (defaultKv ??= new BrowserKVStore());
+  return (defaultKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') }));
 }
 
 /** True when a KV backend keeps its `device` scope on the machine. */

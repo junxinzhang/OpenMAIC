@@ -1,3 +1,4 @@
+import { ownsRenderJob, reconcileRenderJob } from '@/lib/server/render-account';
 import { NextResponse, type NextRequest } from 'next/server';
 import { apiError } from '@/lib/server/api-response';
 import { proxyFetch } from '@/lib/server/proxy-fetch';
@@ -19,6 +20,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await context.params;
+  if (!(await ownsRenderJob(req, jobId)))
+    return apiError('INVALID_REQUEST', 404, 'Render job not found');
   const resolved = resolveRenderServiceUrl();
   if ('error' in resolved) {
     return apiError('PROVIDER_DISABLED', 501, 'Render service is not configured');
@@ -39,7 +42,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
     // Presigned-URL artifact store: hand the redirect to the browser.
     if (upstream.status === 302 || upstream.status === 301) {
       const location = upstream.headers.get('location');
-      if (location) return NextResponse.redirect(location, 302);
+      if (location) {
+        await reconcileRenderJob(jobId, 'succeeded');
+        return NextResponse.redirect(location, 302);
+      }
     }
 
     if (!upstream.ok || !upstream.body) {
@@ -47,6 +53,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
       return apiError('UPSTREAM_ERROR', status, 'Render output not available');
     }
 
+    await reconcileRenderJob(jobId, 'succeeded');
     return new NextResponse(upstream.body, {
       status: 200,
       headers: {

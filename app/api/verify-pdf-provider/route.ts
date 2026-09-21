@@ -1,3 +1,4 @@
+import { withBillableRequest } from '@/lib/billing/guard';
 import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -12,7 +13,7 @@ import { MINERU_CLOUD_DEFAULT_BASE } from '@/lib/pdf/constants';
 
 const log = createLogger('Verify PDF Provider');
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   let providerId: string | undefined;
   try {
     const body = await req.json();
@@ -182,4 +183,8 @@ export async function POST(req: NextRequest) {
 
     return apiError('INTERNAL_ERROR', 500, errorMessage);
   }
+}
+
+export async function POST(req: Parameters<typeof handlePOST>[0]): Promise<Response> {
+  return withBillableRequest(req, 'model_request', () => handlePOST(req));
 }

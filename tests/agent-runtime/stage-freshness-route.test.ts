@@ -6,7 +6,7 @@ import { FIXED_NOW, makeDocument, makeSlideScene } from './_stage-fixtures';
 
 const mocks = vi.hoisted(() => ({
   runtimeConfigured: true,
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   fakeStore: null as ReturnType<typeof createFakeDocumentStore> | null,
 }));
 
@@ -14,7 +14,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isAgentRuntimeConfigured: () => mocks.runtimeConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
@@ -51,7 +51,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   mocks.runtimeConfigured = true;
-  mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
   mocks.fakeStore = createFakeDocumentStore();
   mocks.fakeStore.docs.set(
     STAGE_ID,
@@ -122,10 +122,12 @@ describe('GET /api/stages/[id]/freshness', () => {
   });
 
   it('answers 404 for a missing or foreign stage and still rides the owner cookie', async () => {
-    mocks.resolveRequestOwnerId.mockImplementationOnce((_req, responseHeaders: Headers) => {
-      responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
-      return 'anon:anon-2';
-    });
+    mocks.resolveAuthenticatedRequestOwnerId.mockImplementationOnce(
+      (_req, responseHeaders: Headers) => {
+        responseHeaders.set('Set-Cookie', 'anonymous_id=anon-2; Path=/');
+        return 'anon:anon-2';
+      },
+    );
     const response = await call('stage-absent');
     expect(response.status).toBe(404);
     expect(await response.text()).toBe('Not found');

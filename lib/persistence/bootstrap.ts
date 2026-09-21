@@ -1,3 +1,4 @@
+import { accountLearnerKey, accountStorageName } from '@/lib/auth/client-scope';
 import {
   BrowserKVStore,
   HttpAssetStore,
@@ -31,12 +32,14 @@ export function getPersistenceLearnerKey(): Promise<string> {
   if (!isBrowserPersistenceEnabled()) {
     return Promise.reject(new Error('Browser persistence is not enabled'));
   }
-  return (learnerKeyPromise ??= getLearnerKey((deviceKv ??= new BrowserKVStore())).catch(
-    (error) => {
-      learnerKeyPromise = undefined;
-      throw error;
-    },
-  ));
+  const authenticatedKey = accountLearnerKey();
+  if (authenticatedKey) return Promise.resolve(authenticatedKey);
+  return (learnerKeyPromise ??= getLearnerKey(
+    (deviceKv ??= new BrowserKVStore({ namespace: accountStorageName('maic') })),
+  ).catch((error) => {
+    learnerKeyPromise = undefined;
+    throw error;
+  }));
 }
 
 export async function getPersistenceRequestHeaders(): Promise<Record<string, string>> {

@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({
   runtimeConfigured: true,
   persistenceConfigured: true,
-  resolveRequestOwnerId: vi.fn(),
+  resolveAuthenticatedRequestOwnerId: vi.fn(),
   accessRow: null as Record<string, unknown> | null,
   updatedRows: [] as unknown[],
 }));
@@ -14,7 +14,7 @@ vi.mock('@/lib/config/feature-flags', () => ({
   isServerPersistenceConfigured: () => mocks.persistenceConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
+  resolveAuthenticatedRequestOwnerId: mocks.resolveAuthenticatedRequestOwnerId,
 }));
 vi.mock('@/lib/persistence/server-provider', () => ({
   getServerPersistenceProvider: async () => ({
@@ -51,7 +51,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeConfigured = true;
   mocks.persistenceConfigured = true;
-  mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
+  mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue('owner-1');
   mocks.accessRow = {
     meta_owner_id: 'owner-1',
     meta_is_public: false,
@@ -211,7 +211,9 @@ describe('POST /api/stages/[id]/publish and unpublish', () => {
   });
 
   it('refuses an anonymous owner with login_required', async () => {
-    mocks.resolveRequestOwnerId.mockReturnValue('anon:00000000-0000-4000-8000-000000000000');
+    mocks.resolveAuthenticatedRequestOwnerId.mockReturnValue(
+      'anon:00000000-0000-4000-8000-000000000000',
+    );
     const response = await postPublish(
       new NextRequest(`http://localhost/api/stages/${STAGE_ID}/publish`, { method: 'POST' }),
       params(STAGE_ID),

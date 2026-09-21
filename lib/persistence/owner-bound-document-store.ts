@@ -1,3 +1,4 @@
+import { isAuthEnabled } from '@/lib/auth/config';
 import type { Scene, Stage } from '@openmaic/dsl';
 import {
   PgDocumentStore,
@@ -43,6 +44,7 @@ interface PendingOperation {
 
 interface RawOwnershipRow extends Record<string, unknown> {
   owner_id: string;
+  is_public?: boolean;
   deleted_at: Date | string | null;
 }
 
@@ -247,12 +249,15 @@ export function createOwnerBoundDocumentStore<
         if (operation?.stageId) {
           const lock = operation.mode === 'read' ? 'FOR SHARE' : 'FOR UPDATE';
           const result = await queryable.query<RawOwnershipRow>(
-            `SELECT owner_id, deleted_at FROM stage_meta WHERE stage_id = $1 ${lock}`,
+            `SELECT owner_id, deleted_at, is_public FROM stage_meta WHERE stage_id = $1 ${lock}`,
             [operation.stageId],
           );
           const row = result.rows[0];
           if (row) {
-            if (operation.mode !== 'read' && row.owner_id !== options.ownerId) {
+            if (
+              row.owner_id !== options.ownerId &&
+              (operation.mode !== 'read' || (isAuthEnabled() && row.is_public !== true))
+            ) {
               throw new StageAccessError(operation.stageId, options.ownerId, 'foreign');
             }
             if (row.deleted_at !== null && operation.mode !== 'delete') {
@@ -271,7 +276,32 @@ export function createOwnerBoundDocumentStore<
           }
         }
 
+        const enforceAssets = isAuthEnabled() && operation?.stageId && operation.mode !== 'read';
+        const previousAssets = enforceAssets
+          ? await queryable.query<{ asset_id: string }>(
+              'SELECT asset_id FROM document_asset_refs WHERE stage_id = $1',
+              [operation.stageId],
+            )
+          : { rows: [] };
         const result = await body(queryable);
+        if (enforceAssets) {
+          const forbidden = await queryable.query<{ asset_id: string }>(
+            `SELECT r.asset_id FROM document_asset_refs r
+              JOIN asset_entries a ON a.id = r.asset_id
+              WHERE r.stage_id = $1 AND a.principal <> $2
+                AND NOT (r.asset_id = ANY($3::text[]))
+                AND NOT EXISTS (
+                  SELECT 1 FROM document_asset_refs other
+                  JOIN stage_meta s ON s.stage_id = other.stage_id
+                  WHERE other.asset_id = r.asset_id AND other.stage_id <> $1
+                    AND s.deleted_at IS NULL AND (s.owner_id = $2 OR s.is_public = true)
+                ) LIMIT 1`,
+            [operation.stageId, options.ownerId, previousAssets.rows.map((row) => row.asset_id)],
+          );
+          if (forbidden.rows.length) {
+            throw new StageAccessError(operation.stageId!, options.ownerId, 'foreign');
+          }
+        }
         if (operation?.mode === 'create') {
           await claimStageMeta(queryable, operation.stageId!, options.ownerId);
         }

@@ -7,7 +7,7 @@ if (!key?.startsWith('sk_test_')) throw new Error('A Stripe test key is required
 const stripe = new Stripe(key, { maxNetworkRetries: 2 });
 const product = await stripe.products.create(
   {
-    name: 'Zaokit Edu · Integration Test',
+    name: 'Zaokit AI Edu · Integration Test',
     description: 'Test-only monthly plan. Not a published commercial offer.',
     metadata: { app: 'zaokit-edu', purpose: 'integration-test' },
   },
@@ -25,7 +25,7 @@ const price = await stripe.prices.create(
 );
 const portal = await stripe.billingPortal.configurations.create(
   {
-    business_profile: { headline: 'Zaokit Edu 订阅管理（测试）' },
+    business_profile: { headline: 'Zaokit AI Edu 订阅管理（测试）' },
     features: {
       customer_update: { enabled: true, allowed_updates: ['name'] },
       invoice_history: { enabled: true },

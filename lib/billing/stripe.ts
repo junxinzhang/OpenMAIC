@@ -155,7 +155,7 @@ export async function createCheckout(
       {
         customer: customerId,
         mode: 'subscription',
-        branding_settings: { display_name: 'Zaokit Edu' },
+        branding_settings: { display_name: 'Zaokit AI Edu' },
         line_items: [{ price: plan.priceId, quantity: 1 }],
         success_url: billingOrigin() + '/account?checkout=success',
         cancel_url: billingOrigin() + '/account?checkout=cancel',

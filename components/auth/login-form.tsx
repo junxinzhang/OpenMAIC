@@ -56,8 +56,12 @@ export function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-5 py-12 text-neutral-900">
       <section className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-        <Link href="/" className="text-sm font-semibold text-violet-700">
-          Zaokit Edu
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-violet-700"
+        >
+          <img src="/brand/zaokit-mark.png" alt="" className="h-10 w-10" />
+          Zaokit AI Edu
         </Link>
         <h1 className="mt-6 text-3xl font-semibold">欢迎回来</h1>
         <p className="mb-7 mt-2 text-sm text-neutral-600">登录后继续创建课程，管理你的学习内容。</p>
@@ -156,7 +160,7 @@ export function LoginForm() {
           </p>
         )}
         <p className="mt-7 text-xs leading-5 text-neutral-500">
-          首次登录将为你创建 Zaokit Edu 账户。Google 与邮箱可在验证后关联同一账户。
+          首次登录将为你创建 Zaokit AI Edu 账户。Google 与邮箱可在验证后关联同一账户。
         </p>
       </section>
     </main>

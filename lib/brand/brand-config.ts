@@ -25,10 +25,10 @@ export interface BrandConfig {
 
 /** The default brand: the product itself, with no vendor overrides. */
 export const DEFAULT_BRAND: BrandConfig = {
-  productName: 'OpenMAIC',
-  shortName: 'OpenMAIC',
-  logoSrc: '/logo-horizontal.png',
+  productName: 'Zaokit AI Edu',
+  shortName: 'Zaokit AI Edu',
+  logoSrc: '/brand/zaokit-ai-edu-light.svg',
   logoHasWordmark: true,
-  markSrc: '/openmaic-mark.png',
+  markSrc: '/brand/zaokit-mark.png',
   themeColor: '#722ed1',
 };

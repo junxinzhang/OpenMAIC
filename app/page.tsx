@@ -128,7 +128,7 @@ const initialFormState: FormState = {
 
 function HomePage() {
   const { t } = useI18n();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const router = useRouter();
   // Do not replay the classic hero's entrance after the route handoff already
   // carried the lockup and composer into place.
@@ -833,8 +833,8 @@ function HomePage() {
         {/* ── Logo ── */}
         <div className="relative" data-pro-morph="lockup">
           <motion.img
-            src="/logo-horizontal.png"
-            alt="OpenMAIC"
+            src={`/brand/zaokit-ai-edu-${resolvedTheme}.svg`}
+            alt="Zaokit AI Edu"
             initial={heroEnter({ opacity: 0, scale: 0.9 })}
             animate={{ opacity: 1, scale: 1 }}
             transition={{
@@ -843,7 +843,7 @@ function HomePage() {
               stiffness: 200,
               damping: 20,
             }}
-            className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
+            className="edu-brand-logo h-12 md:h-16 mb-2 max-w-[85vw]"
           />
           {workbenchEntryEnabled ? (
             <div
@@ -1346,7 +1346,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        OpenMAIC Open Source Project
+        Zaokit AI Edu
       </div>
     </div>
   );

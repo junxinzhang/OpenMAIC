@@ -849,7 +849,7 @@ export function WorkspaceRail({
             src={brand.logoSrc}
             alt=""
             aria-hidden="true"
-            className="h-[21px] w-auto max-w-[110px] shrink-0"
+            className="edu-brand-logo h-[21px] w-auto max-w-[110px] shrink-0"
           />
         </HomeLink>
         <ProBadge active onToggle={onExitPro} />

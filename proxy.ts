@@ -14,7 +14,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/v1/auth/') ||
     pathname === '/api/webhooks/stripe' ||
     pathname === '/api/health' ||
-    pathname === '/login'
+    pathname === '/login' ||
+    pathname === '/icon.svg' ||
+    pathname.startsWith('/brand/')
   ) {
     return NextResponse.next();
   }

@@ -35,9 +35,9 @@ export async function sendEmailLogin(value: unknown): Promise<{ challengeId: str
       body: JSON.stringify({
         from: process.env.AUTH_EMAIL_FROM,
         to: [email],
-        subject: '登录 Zaokit Edu',
+        subject: '登录 Zaokit AI Edu',
         text: `你的登录验证码：${code}\n也可以打开登录链接：${link}\n15 分钟内有效，只能使用一次。如果不是你本人操作，请忽略。`,
-        html: `<h2>登录 Zaokit Edu</h2><p>验证码：<strong>${code}</strong></p><p><a href="${link}">继续登录 Zaokit Edu</a></p><p>15 分钟内有效，只能使用一次。如果不是你本人操作，请忽略。</p>`,
+        html: `<h2>登录 Zaokit AI Edu</h2><p>验证码：<strong>${code}</strong></p><p><a href="${link}">继续登录 Zaokit AI Edu</a></p><p>15 分钟内有效，只能使用一次。如果不是你本人操作，请忽略。</p>`,
       }),
     });
     if (!result.ok) throw new Error('delivery failed');

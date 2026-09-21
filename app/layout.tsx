@@ -32,7 +32,7 @@ import { AccountSessionBoundary } from '@/components/auth/account-session-bounda
 import '@fontsource-variable/inter';
 
 export const metadata: Metadata = {
-  title: 'Zaokit Edu',
+  title: 'Zaokit AI Edu',
   description:
     'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
 };

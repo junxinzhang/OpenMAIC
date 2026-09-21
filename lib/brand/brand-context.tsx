@@ -12,6 +12,7 @@
 
 import { createContext, useContext } from 'react';
 import { DEFAULT_BRAND, type BrandConfig } from './brand-config';
+import { useTheme } from '@/lib/hooks/use-theme';
 
 interface BrandContextValue {
   brand: BrandConfig;
@@ -37,7 +38,11 @@ export function BrandProvider({
 }
 
 export function useBrand(): BrandConfig {
-  return useContext(BrandContext).brand;
+  const brand = useContext(BrandContext).brand;
+  const { resolvedTheme } = useTheme();
+  return brand === DEFAULT_BRAND
+    ? { ...brand, logoSrc: `/brand/zaokit-ai-edu-${resolvedTheme}.svg` }
+    : brand;
 }
 
 export function useIsDesktop(): boolean {

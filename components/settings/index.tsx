@@ -1,5 +1,7 @@
 'use client';
 
+import { isRetiredModel } from '@/lib/ai/retired-models';
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
@@ -425,10 +427,10 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   // thinking control isn't silently hidden for fetched built-in models.
   const handleModelsFetched = (pid: ProviderId, fetchedIds: string[]): number => {
     const currentModels = providersConfig[pid]?.models || [];
-    const kept = currentModels.filter((m) => m.source !== 'probed');
+    const kept = currentModels.filter((m) => m.source !== 'probed' && !isRetiredModel(m.id));
     const keptIds = new Set(kept.map((m) => m.id));
     const additions = fetchedIds
-      .filter((id) => !keptIds.has(id))
+      .filter((id) => !keptIds.has(id) && !isRetiredModel(id))
       .map((id) => ({ ...modelInfoFromId(id, pid), source: 'probed' as const }));
     const next = [...kept, ...additions];
     // Write when the set changed at all — additions, or stale probed ids pruned.

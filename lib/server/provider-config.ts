@@ -1,3 +1,4 @@
+import { isRetiredModel } from "@/lib/ai/retired-models";
 /**
  * Server-side Provider Configuration
  *
@@ -682,7 +683,7 @@ export function getServerProviders(): Record<string, { models?: string[] }> {
   for (const [id, entry] of Object.entries(cfg.providers)) {
     result[id] = {};
     if (entry.models && entry.models.length > 0)
-      result[id].models = entry.models;
+      result[id].models = entry.models.filter((model) => !isRetiredModel(model));
   }
   return result;
 }
@@ -930,7 +931,7 @@ export function getServerImageProviders(): Record<
   for (const [id, entry] of Object.entries(cfg.image)) {
     result[id] = {};
     if (entry.models && entry.models.length > 0)
-      result[id].models = entry.models;
+      result[id].models = entry.models.filter((model) => !isRetiredModel(model));
   }
   for (const id of cfg.disabled.image) result[id] = { disabled: true };
   return result;
@@ -996,7 +997,7 @@ export function getServerVideoProviders(): Record<
   for (const [id, entry] of Object.entries(cfg.video)) {
     result[id] = {};
     if (entry.models && entry.models.length > 0)
-      result[id].models = entry.models;
+      result[id].models = entry.models.filter((model) => !isRetiredModel(model));
   }
   for (const id of cfg.disabled.video) result[id] = { disabled: true };
   return result;

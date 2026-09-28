@@ -652,7 +652,7 @@ export class PlaybackEngine {
       case 'spotlight':
       case 'laser': {
         // Fire-and-forget visual effects via ActionEngine
-        this.actionEngine.execute(action);
+        this.actionEngine.execute(action, { holdEffect: true });
         this.callbacks.onEffectFire?.({
           kind: action.type,
           targetId: action.elementId,

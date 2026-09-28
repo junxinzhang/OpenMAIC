@@ -173,6 +173,8 @@ export type WidgetMessageCallback = (type: string, payload: Record<string, unkno
 export interface ActionExecutionOptions {
   silent?: boolean;
   signal?: AbortSignal;
+  /** Keep a lecture focus visible until the next focus or scene change. */
+  holdEffect?: boolean;
 }
 
 export class ActionEngine {
@@ -232,10 +234,10 @@ export class ActionEngine {
     switch (action.type) {
       // Fire-and-forget
       case 'spotlight':
-        this.executeSpotlight(action);
+        this.executeSpotlight(action, options.holdEffect);
         return;
       case 'laser':
-        this.executeLaser(action);
+        this.executeLaser(action, options.holdEffect);
         return;
       // Synchronous — Video
       case 'play_video':
@@ -305,10 +307,12 @@ export class ActionEngine {
   }
 
   /** Schedule auto-clear for fire-and-forget effects */
-  private scheduleEffectClear(): void {
+  private scheduleEffectClear(hold = false): void {
     if (this.effectTimer) {
       clearTimeout(this.effectTimer);
+      this.effectTimer = null;
     }
+    if (hold) return;
     this.effectTimer = setTimeout(() => {
       useCanvasStore.getState().clearAllEffects();
       this.effectTimer = null;
@@ -317,18 +321,18 @@ export class ActionEngine {
 
   // ==================== Fire-and-forget ====================
 
-  private executeSpotlight(action: SpotlightAction): void {
+  private executeSpotlight(action: SpotlightAction, hold = false): void {
     useCanvasStore.getState().setSpotlight(action.elementId, {
       dimness: action.dimOpacity ?? 0.5,
     });
-    this.scheduleEffectClear();
+    this.scheduleEffectClear(hold);
   }
 
-  private executeLaser(action: LaserAction): void {
+  private executeLaser(action: LaserAction, hold = false): void {
     useCanvasStore.getState().setLaser(action.elementId, {
       color: action.color ?? '#ff0000',
     });
-    this.scheduleEffectClear();
+    this.scheduleEffectClear(hold);
   }
 
   // ==================== Synchronous — Speech ====================

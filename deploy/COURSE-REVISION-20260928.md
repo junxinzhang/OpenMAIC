@@ -13,3 +13,11 @@ Narration status: the five pre-account first-page clips have now been recovered 
 ## Narration completed
 
 All 96 narration segments are now saved and backed by complete audio files, including all 18 segments on the six added pages. The original content, text and order were preserved. The new closing page was played in Chrome; normal 1× speed was restored and visually confirmed. See `NARRATION-20260928.md` for the completed verification record.
+
+## Bright classroom redesign
+
+Applied the user's chosen bright, playful style with a small amount of cartoon illustration to the same production classroom. Rebuilt the 12 native slides with cream backgrounds, purple/teal/amber accents, larger headings, short instructions, and editable robot, magnifier and book illustrations. Rethemed DOM panels on 14 interactive pages and added plain-language activity guides; the original game scripts remain byte-for-byte unchanged. Canvas game interiors keep their original drawings. Updated corresponding outline titles and native spotlight targets.
+
+Verification: all 12 slide schemas passed; local slide text bounds were checked; all 14 activities were visually inspected and started or advanced in the same sandbox/storage-shim setup as the classroom. Corrected low-contrast text discovered in the dark-theme activities. Production content was compared against all 26 planned pages after saving through PgDocumentStore with a concurrent-change guard. All 96 speech records, text and audio references remained identical. Database verification found 96/96 complete nonempty audio files, including all 18 on added pages. Live classroom reload showed the new cover and activity guides; the live prompt-building activity started successfully, and lesson playback advanced without console errors. No audio regeneration, voice replacement, app deployment, or credential change was needed.
+
+A fresh full-document backup was saved before the write under `/app/data/course-revisions/20260928-bright/` in the persistent volume. Prepared before/after payloads and the update helper are under the host's existing protected course backup directory.

@@ -9,3 +9,7 @@ The classroom now has 26 content pages, plus the virtual completion page. New pa
 Backup: `/opt/openmaic/backups/20260928-narration-cache/classroom.before-content-edit.json`; a copy also exists in the persistent data volume at `/app/data/course-revisions/20260928/GW_5fxujQX.before.json`. The prepared six-page payload and update script are in the same host backup directory.
 
 Narration status: the five pre-account first-page clips have now been recovered into allocated server assets; 41 newly generated Qwen clips remain. Of 96 total speech segments after these additions, 46 have audio and 50 still need synthesis (32 pre-existing gaps plus 18 new segments). The user's description of the wrong sound still needs a specific symptom or page; do not assume that successful synthesis alone resolves that complaint. A playback-speed inspection was interrupted by the Mac lock after clicking the cycling speed control; re-check and restore/confirm normal 1× playback before further testing. No new synthesis or voice replacement was performed during this content revision.
+
+## Narration completed
+
+All 96 narration segments are now saved and backed by complete audio files, including all 18 segments on the six added pages. The original content, text and order were preserved. The new closing page was played in Chrome; normal 1× speed was restored and visually confirmed. See `NARRATION-20260928.md` for the completed verification record.

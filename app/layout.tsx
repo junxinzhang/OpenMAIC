@@ -13,7 +13,6 @@ import { StorageHealthNotice } from '@/components/storage-health-notice';
 import { AccessCodeGuard } from '@/components/access-code-guard';
 import { ProSwapWatcher } from '@/components/workbench/ProSwapWatcher';
 import { isAuthEnabled } from '@/lib/auth/config';
-import Link from 'next/link';
 import { AccountSessionBoundary } from '@/components/auth/account-session-boundary';
 
 // The UI font is loaded from @fontsource's stylesheet rather than next/font,
@@ -57,14 +56,6 @@ export default function RootLayout({
             <AccountSessionBoundary enabled={isAuthEnabled()}>
               <ServerProvidersInit />
               <ProSwapWatcher />
-              {isAuthEnabled() && (
-                <Link
-                  href="/account"
-                  className="fixed right-4 bottom-4 z-40 rounded-full border bg-background px-4 py-2 text-sm shadow-sm hover:bg-muted"
-                >
-                  账户与积分
-                </Link>
-              )}
               <AccessCodeGuard>{children}</AccessCodeGuard>
               <Toaster position="top-center" />
               {/* After the Toaster: this one raises a toast on mount when

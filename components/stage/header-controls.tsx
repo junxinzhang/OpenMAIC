@@ -28,6 +28,7 @@ import { CircularProgress } from '@/components/ui/circular-progress';
 import { VideoExportDialog } from './video-export-dialog';
 import { LanguageSwitcher } from '../language-switcher';
 import { SettingsDialog } from '../settings';
+import { NarrationFillButton } from './narration-fill-button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -259,6 +260,8 @@ export function HeaderControls({
           />
         </label>
       )}
+
+      {showCourseActions && <NarrationFillButton />}
 
       {/* Export / Download — lives to the right of the Pro Switch.
           Not a settings function so it does not belong inside the

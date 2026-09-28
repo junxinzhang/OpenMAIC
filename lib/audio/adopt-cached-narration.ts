@@ -44,6 +44,7 @@ import { mayNameAPoolAsset } from '@/lib/media/media-placeholder';
 import { isConcreteMediaAddress } from '@/lib/media/resolve-media-ref';
 import { isServerBackedMediaPersistence } from '@/lib/persistence/media-persistence';
 import { db, type AudioFileRecord } from '@/lib/utils/database';
+import { LEGACY_NARRATION_DATABASE, readLegacyNarration } from './legacy-narration-cache';
 
 import { persistNarrationReference } from './persist-narration-reference';
 
@@ -389,7 +390,18 @@ async function adoptCachedNarrationRun(
     if (abortSignal?.aborted || !onThisCourse()) break;
     // The derived id IS the local key: that is what made it usable before
     // allocation existed.
-    const row = await db.audioFiles.get(action.derivedRef).catch(() => undefined);
+    let row = await db.audioFiles.get(action.derivedRef).catch(() => undefined);
+    if ((!row?.blob || row.blob.size === 0) && db.name && db.name !== LEGACY_NARRATION_DATABASE) {
+      // Account isolation changed the local database name. Recover only this
+      // owner-authorized course's exact existing clips; never synthesize them.
+      const legacy = await readLegacyNarration(stageId, action.derivedRef, action.text).catch(
+        () => undefined,
+      );
+      if (legacy && !abortSignal?.aborted && onThisCourse()) {
+        await db.audioFiles.put(legacy);
+        row = legacy;
+      }
+    }
     if (!row?.blob || row.blob.size === 0) {
       unbacked += 1;
       continue;

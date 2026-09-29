@@ -72,7 +72,7 @@ import { AddAudioProviderDialog, type NewAudioProviderData } from './add-audio-p
 import { isCustomTTSProvider, isCustomASRProvider } from '@/lib/audio/types';
 import { resolveASRProviderName, resolveTTSProviderName } from '@/lib/audio/provider-display';
 import type { SettingsSection, EditingModel } from '@/lib/types/settings';
-import { isAuthEnabled } from '@/lib/auth/config';
+import { useAccountEnabled } from '@/components/auth/account-session-boundary';
 
 // ─── Provider List Column (reusable) ───
 function ProviderListColumn<T extends string>({
@@ -218,6 +218,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsDialogProps) {
   const { t } = useI18n();
+  const accountEnabled = useAccountEnabled();
 
   // Get settings from store
   const providerId = useSettingsStore((state) => state.providerId);
@@ -898,7 +899,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
               </button>
             </div>
 
-            {isAuthEnabled() && (
+            {accountEnabled && (
               <Link
                 href="/account"
                 onClick={() => onOpenChange(false)}

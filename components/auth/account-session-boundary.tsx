@@ -1,11 +1,15 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
   ACCOUNT_SCOPE_KEY,
   ACCOUNT_CHANGE_KEY,
   currentAccountScope,
   setAccountScope,
 } from '@/lib/auth/client-scope';
+const AccountEnabledContext = createContext(false);
+export function useAccountEnabled() {
+  return useContext(AccountEnabledContext);
+}
 /** Mount all cache-using children only after their account partition is known. */
 export function AccountSessionBoundary({
   enabled,
@@ -76,7 +80,10 @@ export function AccountSessionBoundary({
       window.removeEventListener('storage', changed);
     };
   }, [enabled]);
-  if (!enabled || ready) return children;
+  if (!enabled || ready)
+    return (
+      <AccountEnabledContext.Provider value={enabled}>{children}</AccountEnabledContext.Provider>
+    );
   return (
     <main className="flex min-h-screen items-center justify-center p-8 text-center" role="status">
       <div>
